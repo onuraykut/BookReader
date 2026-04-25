@@ -93,7 +93,9 @@ afterEvaluate {
                 from(components["release"])
                 groupId = "com.github.kryptow"
                 artifactId = "epub-reader"
-                version = "1.0.0"
+                // JitPack git tag'ini -PVERSION_NAME ile geçirir;
+                // lokal test için fallback "1.0.0" kullanılır.
+                version = findProperty("VERSION_NAME")?.toString() ?: "1.0.0"
             }
         }
     }
