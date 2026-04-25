@@ -30,6 +30,9 @@ class BookRepositoryImpl(
     override suspend fun getBookById(id: Long): Book? =
         bookDao.getBookById(id)?.toDomain()
 
+    override suspend fun getBookByFilePath(filePath: String): Book? =
+        bookDao.getBookByFilePath(filePath)?.toDomain()
+
     override suspend fun addBook(book: Book): Long =
         bookDao.insertBook(book.toEntity())
 
