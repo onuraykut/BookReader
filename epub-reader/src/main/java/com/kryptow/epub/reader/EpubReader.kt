@@ -69,6 +69,7 @@ object EpubReader {
      * @param application      Android Application nesnesi.
      * @param extraKoinModules Uygulamaya özgü ek Koin modülleri (isteğe bağlı).
      */
+    @JvmStatic
     fun init(application: Application, vararg extraKoinModules: Module) {
         if (initialized) return
         initialized = true
@@ -91,6 +92,7 @@ object EpubReader {
      * @param context Android Context.
      * @param bookId  Kütüphane veritabanındaki kitap kimliği.
      */
+    @JvmStatic
     fun openBook(context: Context, bookId: Long) {
         context.startActivity(
             Intent(context, EpubReaderActivity::class.java).apply {
@@ -106,6 +108,7 @@ object EpubReader {
      * @param context  Android Context.
      * @param filePath EPUB dosyasının tam yolu. Örn: `/storage/emulated/0/books/alice.epub`
      */
+    @JvmStatic
     fun openFile(context: Context, filePath: String) {
         openUri(context, Uri.fromFile(File(filePath)))
     }
@@ -127,6 +130,7 @@ object EpubReader {
      * EpubReader.openFile(context, "/storage/emulated/0/book.epub")
      * ```
      */
+    @JvmStatic
     fun openUri(context: Context, uri: Uri) {
         context.startActivity(
             Intent(context, EpubReaderActivity::class.java).apply {
@@ -146,6 +150,7 @@ object EpubReader {
      * }
      * ```
      */
+    @JvmStatic
     fun koinModules(): List<Module> = internalModules()
 
     // ─── İç ────────────────────────────────────────────────────────────────────
