@@ -16,7 +16,7 @@ data class ReadingPreferences(
 
     // Davranış
     val keepScreenOn: Boolean = true,
-    val scrollMode: ScrollMode = ScrollMode.VERTICAL,
+    val scrollMode: ScrollMode = ScrollMode.HORIZONTAL_PAGE,
 ) {
     /** Şu anki saate göre gece modu aktif mi? */
     fun shouldUseNightMode(currentHour: Int): Boolean = when (themeMode) {

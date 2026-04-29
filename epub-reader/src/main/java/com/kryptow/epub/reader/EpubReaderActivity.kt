@@ -6,11 +6,15 @@ import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.lifecycle.lifecycleScope
 import com.kryptow.epub.reader.bookreader.domain.model.Book
 import com.kryptow.epub.reader.bookreader.domain.repository.BookRepository
 import com.kryptow.epub.reader.bookreader.epub.EpubParser
 import com.kryptow.epub.reader.bookreader.ui.screen.reader.ReaderScreen
+import com.kryptow.epub.reader.bookreader.ui.screen.settings.SettingsScreen
 import com.kryptow.epub.reader.bookreader.ui.theme.BookReaderTheme
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -38,6 +42,9 @@ class EpubReaderActivity : ComponentActivity() {
     private val bookRepository: BookRepository by inject()
     private val epubParser: EpubParser by inject()
 
+    // Basit iç navigasyon: false = Reader, true = Settings
+    private var showSettings by mutableStateOf(false)
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
@@ -47,12 +54,8 @@ class EpubReaderActivity : ComponentActivity() {
             ?: intent.data  // ACTION_VIEW ile gelen URI de desteklenir
 
         when {
-            // Doğrudan ID verilmişse hemen aç
             bookId != -1L -> showReader(bookId)
-
-            // URI verilmişse: DB'de ara, yoksa ekle, sonra aç
             fileUri != null -> resolveAndOpen(fileUri)
-
             else -> {
                 Toast.makeText(this, "Geçersiz kitap", Toast.LENGTH_SHORT).show()
                 finish()
@@ -105,12 +108,18 @@ class EpubReaderActivity : ComponentActivity() {
     private fun showReader(bookId: Long) {
         setContent {
             BookReaderTheme {
-                ReaderScreen(
-                    bookId = bookId,
-                    onBack = { finish() },
-                    onSettingsClick = { /* Ayarlar: isteğe bağlı override edilebilir */ },
-                    onNotesClick = { /* Notlar: isteğe bağlı override edilebilir */ },
-                )
+                if (showSettings) {
+                    SettingsScreen(
+                        onBack = { showSettings = false },
+                    )
+                } else {
+                    ReaderScreen(
+                        bookId = bookId,
+                        onBack = { finish() },
+                        onSettingsClick = { showSettings = true },
+                        onNotesClick = {},
+                    )
+                }
             }
         }
     }
