@@ -4,6 +4,7 @@ import android.annotation.SuppressLint
 import android.view.ActionMode
 import android.view.Menu
 import android.view.MenuItem
+import android.view.MotionEvent
 import android.view.ViewGroup
 import android.webkit.JavascriptInterface
 import android.webkit.WebSettings
@@ -129,6 +130,32 @@ fun PaginatedEpubWebView(
         modifier = modifier,
         factory = { ctx ->
             object : WebView(ctx) {
+                private var touchStartX = 0f
+                private var touchStartY = 0f
+
+                override fun onTouchEvent(event: MotionEvent): Boolean {
+                    when (event.actionMasked) {
+                        MotionEvent.ACTION_DOWN -> {
+                            touchStartX = event.x
+                            touchStartY = event.y
+                            // Parent'ın touch'ı kesmesini engelle — her dokunuşta
+                            parent?.requestDisallowInterceptTouchEvent(true)
+                        }
+                        MotionEvent.ACTION_MOVE -> {
+                            val dx = Math.abs(event.x - touchStartX)
+                            val dy = Math.abs(event.y - touchStartY)
+                            // Yatay hareket baskınsa parent intercept'ini koru
+                            if (dx > dy) {
+                                parent?.requestDisallowInterceptTouchEvent(true)
+                            }
+                        }
+                        MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
+                            parent?.requestDisallowInterceptTouchEvent(false)
+                        }
+                    }
+                    return super.onTouchEvent(event)
+                }
+
                 override fun startActionMode(callback: ActionMode.Callback?, type: Int): ActionMode? {
                     return super.startActionMode(
                         object : ActionMode.Callback {
