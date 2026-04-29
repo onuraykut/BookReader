@@ -64,12 +64,17 @@ object EpubReader {
     private var initialized = false
 
     /**
-     * Kütüphaneyi başlatır. Uygulama başlangıcında bir kez çağrılmalıdır.
-     *
-     * @param application      Android Application nesnesi.
-     * @param extraKoinModules Uygulamaya özgü ek Koin modülleri (isteğe bağlı).
+     * Java / Koin kullanmayan uygulamalar için basit başlatma metodu.
+     * Uygulama başlangıcında bir kez çağrılmalıdır.
      */
     @JvmStatic
+    fun init(application: Application) = init(application, *emptyArray<Module>())
+
+    /**
+     * Koin kullanan Kotlin uygulamaları için — ek modül geçilebilir.
+     * Java tarafından görünmez; Java için parametresiz [init] kullanın.
+     */
+    @JvmSynthetic
     fun init(application: Application, vararg extraKoinModules: Module) {
         if (initialized) return
         initialized = true
@@ -139,19 +144,6 @@ object EpubReader {
             },
         )
     }
-
-    /**
-     * Mevcut Koin modüllerini döndürür — kendi `startKoin` bloğunuza eklemek isterseniz.
-     *
-     * ```kotlin
-     * startKoin {
-     *     androidContext(this@App)
-     *     modules(EpubReader.koinModules() + myModule)
-     * }
-     * ```
-     */
-    @JvmStatic
-    fun koinModules(): List<Module> = internalModules()
 
     // ─── İç ────────────────────────────────────────────────────────────────────
 
