@@ -135,11 +135,13 @@ class LibraryViewModel(
 
     private suspend fun addSingleEpub(uri: Uri) {
         val epubBook = epubParser.parse(uri)
+        val coverPath = epubBook.coverImageBytes?.let { epubParser.saveCoverImage(it, uri) }
         addBookUseCase(
             Book(
                 title = epubBook.title,
                 author = epubBook.author,
                 filePath = uri.toString(),
+                coverPath = coverPath,
                 totalChapters = epubBook.chapters.size,
             )
         )

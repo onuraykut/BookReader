@@ -2,13 +2,16 @@ package com.kryptow.epub.reader.bookreader.epub
 
 import android.content.Context
 import android.net.Uri
+import android.util.Base64
 import com.kryptow.epub.reader.bookreader.epub.model.EpubBook
 import com.kryptow.epub.reader.bookreader.epub.model.EpubChapter
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.w3c.dom.Element
 import org.w3c.dom.NodeList
+import java.io.File
 import java.io.InputStream
+import java.net.URLDecoder
 import java.util.zip.ZipInputStream
 import javax.xml.parsers.DocumentBuilderFactory
 
@@ -52,10 +55,11 @@ class EpubParser(private val context: Context) {
             val href = manifest[idRef] ?: return@mapIndexedNotNull null
             val fullPath = if (opfDir.isEmpty()) href else "$opfDir/$href"
             val rawHtml = entries[fullPath]?.toString(Charsets.UTF_8) ?: return@mapIndexedNotNull null
+            val chapterDir = fullPath.substringBeforeLast("/", "")
             EpubChapter(
                 index = index,
                 title = tocTitles[href] ?: tocTitles[idRef] ?: "Bölüm ${index + 1}",
-                content = stripToBodyContent(rawHtml),
+                content = inlineImages(stripToBodyContent(rawHtml), chapterDir, entries),
                 href = href,
             )
         }
@@ -180,6 +184,74 @@ class EpubParser(private val context: Context) {
         }
         return null
     }
+
+    /**
+     * Converts relative image src/href attributes in HTML to base64 data URIs
+     * so they render correctly in a WebView loaded without a base URL.
+     */
+    private fun inlineImages(
+        bodyHtml: String,
+        chapterDir: String,
+        entries: Map<String, ByteArray>,
+    ): String {
+        val imgRegex = Regex(
+            """(<img\b[^>]*?\bsrc=)(["'])([^"']+)\2""",
+            RegexOption.IGNORE_CASE,
+        )
+        val svgRegex = Regex(
+            """(<image\b[^>]*?\b(?:xlink:href|href)=)(["'])([^"']+)\2""",
+            RegexOption.IGNORE_CASE,
+        )
+
+        fun toDataUri(src: String): String? {
+            if (src.startsWith("data:") || src.startsWith("http:") || src.startsWith("https:")) return null
+            val decoded = try { URLDecoder.decode(src, "UTF-8") } catch (_: Exception) { src }
+            val resolved = normalizePath(if (chapterDir.isEmpty()) decoded else "$chapterDir/$decoded")
+            val bytes = entries[resolved]
+                ?: entries.entries.firstOrNull { it.key.endsWith("/${resolved.substringAfterLast('/')}") }?.value
+                ?: return null
+            val b64 = Base64.encodeToString(bytes, Base64.NO_WRAP)
+            return "data:${imageMimeType(resolved)};base64,$b64"
+        }
+
+        var result = imgRegex.replace(bodyHtml) { m ->
+            val dataUri = toDataUri(m.groupValues[3]) ?: return@replace m.value
+            "${m.groupValues[1]}\"$dataUri\""
+        }
+        result = svgRegex.replace(result) { m ->
+            val dataUri = toDataUri(m.groupValues[3]) ?: return@replace m.value
+            "${m.groupValues[1]}\"$dataUri\""
+        }
+        return result
+    }
+
+    private fun normalizePath(path: String): String {
+        val result = mutableListOf<String>()
+        for (part in path.split("/")) {
+            when {
+                part == ".." && result.isNotEmpty() -> result.removeLast()
+                part != "." && part.isNotEmpty() -> result.add(part)
+            }
+        }
+        return result.joinToString("/")
+    }
+
+    private fun imageMimeType(path: String): String = when (path.substringAfterLast('.').lowercase()) {
+        "jpg", "jpeg" -> "image/jpeg"
+        "png" -> "image/png"
+        "gif" -> "image/gif"
+        "webp" -> "image/webp"
+        "svg" -> "image/svg+xml"
+        else -> "image/jpeg"
+    }
+
+    fun saveCoverImage(coverBytes: ByteArray, uri: Uri): String? = try {
+        val coversDir = File(context.filesDir, "covers")
+        coversDir.mkdirs()
+        val file = File(coversDir, "${uri.toString().hashCode()}.jpg")
+        file.writeBytes(coverBytes)
+        file.absolutePath
+    } catch (_: Exception) { null }
 
     private fun stripToBodyContent(html: String): String {
         val bodyRegex = Regex("<body[^>]*>(.*?)</body>", RegexOption.DOT_MATCHES_ALL)
