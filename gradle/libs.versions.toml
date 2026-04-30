@@ -21,6 +21,8 @@ coil = "2.7.0"
 lifecycleViewmodelCompose = "2.10.0"
 material-icons = "1.7.8"
 documentfile = "1.0.1"
+car-app = "1.4.0"
+media = "1.7.0"
 
 [libraries]
 # Mevcut
@@ -72,8 +74,16 @@ material-icons-extended = { group = "androidx.compose.material", name = "materia
 # DocumentFile (SAF klasör tarama)
 androidx-documentfile = { group = "androidx.documentfile", name = "documentfile", version.ref = "documentfile" }
 
+# Car App Library
+car-app-base       = { group = "androidx.car.app", name = "app",           version.ref = "car-app" }
+car-app-automotive = { group = "androidx.car.app", name = "app-automotive", version.ref = "car-app" }
+
+# Media (MediaBrowserServiceCompat + MediaSession)
+media = { group = "androidx.media", name = "media", version.ref = "media" }
+
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
 android-library = { id = "com.android.library", version.ref = "agp" }
+kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
 kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
 ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }

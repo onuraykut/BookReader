@@ -84,6 +84,12 @@ dependencies {
 
     // DocumentFile
     implementation(libs.androidx.documentfile)
+
+    // Car App Library (Android Auto + AAOS ortak API)
+    implementation(libs.car.app.base)
+
+    // Media (MediaBrowserServiceCompat, MediaSession)
+    implementation(libs.media)
 }
 
 afterEvaluate {
