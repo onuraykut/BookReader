@@ -75,6 +75,9 @@ dependencies {
     implementation(libs.lifecycle.viewmodel.compose)
     implementation(libs.lifecycle.runtime.compose)
 
+    // Android Auto desteği (AAOS için :automotive modülü kullanılır)
+    implementation(libs.media)
+
     // Test
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)

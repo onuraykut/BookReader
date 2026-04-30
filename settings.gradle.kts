@@ -25,3 +25,4 @@ dependencyResolutionManagement {
 rootProject.name = "Book Reader"
 include(":app")
 include(":epub-reader")
+include(":automotive")
