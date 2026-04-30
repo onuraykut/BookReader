@@ -90,11 +90,12 @@ class EpubReaderActivity : ComponentActivity() {
         // 2) Yoksa parse et ve ekle
         return try {
             val epubBook = epubParser.parse(uri)
+            val coverPath = epubBook.coverImageBytes?.let { epubParser.saveCoverImage(it, uri) }
             val book = Book(
                 title = epubBook.title.ifBlank { uri.lastPathSegment ?: "Bilinmeyen Kitap" },
                 author = epubBook.author.ifBlank { "Bilinmeyen Yazar" },
                 filePath = uriString,
-                coverPath = null,
+                coverPath = coverPath,
                 totalChapters = epubBook.chapters.size,
             )
             bookRepository.addBook(book)
