@@ -11,6 +11,7 @@ import androidx.car.app.model.Row
 import androidx.car.app.model.Template
 import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.LifecycleOwner
+import com.kryptow.epub.reader.R
 import com.kryptow.epub.reader.bookreader.domain.model.Book
 import com.kryptow.epub.reader.bookreader.epub.EpubParser
 import com.kryptow.epub.reader.bookreader.epub.model.EpubChapter
@@ -57,15 +58,15 @@ class BookDetailCarScreen(
 
         if (!loading) {
             if (chapters.isEmpty()) {
-                listBuilder.setNoItemsMessage("Bölümler yüklenemedi.")
+                listBuilder.setNoItemsMessage(carContext.getString(R.string.error))
             } else {
                 chapters.forEachIndexed { index, chapter ->
-                    val title = chapter.title.ifBlank { "Bölüm ${index + 1}" }
+                    val title = chapter.title.ifBlank { carContext.getString(R.string.chapter_format, index + 1) }
                     val isCurrent = index == book.currentChapter
                     listBuilder.addItem(
                         Row.Builder()
                             .setTitle(if (isCurrent) "▶ $title" else title)
-                            .addText("Bölüm ${index + 1} / ${chapters.size}")
+                            .addText(carContext.getString(R.string.reader_chapter_format, index + 1, chapters.size))
                             .setOnClickListener {
                                 startPlayback(index)
                             }

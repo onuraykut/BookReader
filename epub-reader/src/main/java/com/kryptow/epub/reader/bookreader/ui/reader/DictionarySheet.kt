@@ -37,10 +37,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.kryptow.epub.reader.R
 import com.kryptow.epub.reader.bookreader.domain.model.WordDefinition
 import com.kryptow.epub.reader.bookreader.ui.screen.reader.DictionaryUiState
 import java.net.URLEncoder
@@ -112,7 +114,7 @@ fun DictionarySheet(
                     )
                     Spacer(Modifier.width(6.dp))
                     Text(
-                        text = "Çeviri",
+                        text = stringResource(R.string.dictionary_translation),
                         style = MaterialTheme.typography.labelLarge,
                         color = MaterialTheme.colorScheme.primary,
                         fontWeight = FontWeight.SemiBold,
@@ -172,7 +174,7 @@ fun DictionarySheet(
                             fontWeight = FontWeight.Medium,
                         )
                         else -> Text(
-                            text = "Çeviri bulunamadı",
+                            text = stringResource(R.string.dictionary_translation_failed),
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             fontStyle = FontStyle.Italic,
@@ -201,7 +203,7 @@ fun DictionarySheet(
                         modifier = Modifier.size(16.dp),
                     )
                     Spacer(Modifier.width(6.dp))
-                    Text("Google Translate'te Aç", fontSize = 13.sp)
+                    Text("Google Translate", fontSize = 13.sp)
                 }
             }
 
@@ -210,7 +212,7 @@ fun DictionarySheet(
             // ─── Sözlük tanımları ─────────────────────────────────────────────
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 Text(
-                    text = "Sözlük (İngilizce)",
+                    text = stringResource(R.string.dictionary_definition),
                     style = MaterialTheme.typography.labelLarge,
                     color = MaterialTheme.colorScheme.primary,
                     fontWeight = FontWeight.SemiBold,
@@ -223,13 +225,13 @@ fun DictionarySheet(
                     ) {
                         CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
                         Text(
-                            "Yükleniyor…",
+                            stringResource(R.string.dictionary_loading),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     }
                     state.definitions.isEmpty() -> Text(
-                        "Tanım bulunamadı",
+                        stringResource(R.string.dictionary_not_found),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         fontStyle = FontStyle.Italic,

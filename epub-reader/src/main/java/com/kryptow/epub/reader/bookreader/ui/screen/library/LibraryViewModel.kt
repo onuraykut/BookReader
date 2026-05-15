@@ -1,6 +1,9 @@
 package com.kryptow.epub.reader.bookreader.ui.screen.library
 
+import android.content.Context
+import android.database.Cursor
 import android.net.Uri
+import android.provider.OpenableColumns
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.kryptow.epub.reader.bookreader.domain.model.Book
@@ -10,8 +13,10 @@ import com.kryptow.epub.reader.bookreader.domain.usecase.GetBooksUseCase
 import com.kryptow.epub.reader.bookreader.domain.usecase.GetFavoriteBooksUseCase
 import com.kryptow.epub.reader.bookreader.domain.usecase.GetRecentBooksUseCase
 import com.kryptow.epub.reader.bookreader.domain.usecase.ToggleFavoriteUseCase
+import com.kryptow.epub.reader.R
 import com.kryptow.epub.reader.bookreader.epub.EpubParser
 import com.kryptow.epub.reader.bookreader.epub.FolderScanner
+import com.kryptow.epub.reader.bookreader.pdf.PdfPageRenderer
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -32,6 +37,7 @@ class LibraryViewModel(
     private val toggleFavoriteUseCase: ToggleFavoriteUseCase,
     private val epubParser: EpubParser,
     private val folderScanner: FolderScanner,
+    private val context: Context,
 ) : ViewModel() {
 
     // ─── Arama sorgusu ────────────────────────────────────────────────────────
@@ -92,14 +98,16 @@ class LibraryViewModel(
     }
 
     // ─── İçe aktarma ─────────────────────────────────────────────────────────
-    fun importEpub(uri: Uri) {
+
+    /** EPUB veya PDF URI'sini otomatik algılar ve ekler. */
+    fun importFile(uri: Uri) {
         viewModelScope.launch {
             _isLoading.value = true
             _error.value = null
             try {
-                addSingleEpub(uri)
+                if (uri.isPdf(context)) addSinglePdf(uri) else addSingleEpub(uri)
             } catch (e: Exception) {
-                _error.value = "EPUB yüklenemedi: ${e.message}"
+                _error.value = context.getString(R.string.import_failed, e.message ?: "")
             } finally {
                 _isLoading.value = false
             }
@@ -117,16 +125,19 @@ class LibraryViewModel(
                 var failed = 0
                 for (uri in foundUris) {
                     if (uri.toString() in existingPaths) continue
-                    try { addSingleEpub(uri); added++ } catch (_: Exception) { failed++ }
+                    try {
+                        if (uri.isPdf(context)) addSinglePdf(uri) else addSingleEpub(uri)
+                        added++
+                    } catch (_: Exception) { failed++ }
                 }
                 _info.value = when {
-                    foundUris.isEmpty() -> "Seçilen klasörde EPUB bulunamadı"
-                    added == 0 && failed == 0 -> "Tüm kitaplar zaten kütüphanede"
-                    failed == 0 -> "$added kitap eklendi"
-                    else -> "$added eklendi, $failed başarısız"
+                    foundUris.isEmpty() -> context.getString(R.string.import_no_files_in_folder)
+                    added == 0 && failed == 0 -> context.getString(R.string.import_all_already_added)
+                    failed == 0 -> context.getString(R.string.import_added_count, added)
+                    else -> context.getString(R.string.import_partial_success, added, failed)
                 }
             } catch (e: Exception) {
-                _error.value = "Klasör taranamadı: ${e.message}"
+                _error.value = context.getString(R.string.import_folder_failed, e.message ?: "")
             } finally {
                 _isLoading.value = false
             }
@@ -138,11 +149,48 @@ class LibraryViewModel(
         val coverPath = epubBook.coverImageBytes?.let { epubParser.saveCoverImage(it, uri) }
         addBookUseCase(
             Book(
-                title = epubBook.title,
-                author = epubBook.author,
+                title = epubBook.title.ifBlank { uri.lastPathSegment ?: context.getString(R.string.error_unknown_book) },
+                author = epubBook.author.ifBlank { context.getString(R.string.error_unknown_author) },
                 filePath = uri.toString(),
                 coverPath = coverPath,
                 totalChapters = epubBook.chapters.size,
+            )
+        )
+    }
+
+    private suspend fun addSinglePdf(uri: Uri) {
+        // Önce OpenableColumns'dan görünen dosya adını al
+        val displayName = runCatching {
+            var name: String? = null
+            val cursor = context.contentResolver.query(
+                uri, arrayOf(OpenableColumns.DISPLAY_NAME), null, null, null
+            )
+            cursor?.use { if (it.moveToFirst()) name = it.getString(0) }
+            name
+        }.getOrNull()
+
+        val fileName = (displayName ?: uri.lastPathSegment ?: context.getString(R.string.pdf_document))
+            .removeSuffix(".pdf")
+            .removeSuffix(".PDF")
+
+        // İlk sayfayı kapak olarak render et
+        val coverPath = PdfPageRenderer.generateCover(context, uri)
+
+        // Toplam sayfa sayısını al
+        val pageCount = runCatching {
+            val renderer = PdfPageRenderer(context)
+            try {
+                if (renderer.open(uri)) renderer.pageCount else 1
+            } finally { renderer.close() }
+        }.getOrDefault(1)
+
+        addBookUseCase(
+            Book(
+                title = fileName,
+                author = "PDF",
+                filePath = uri.toString(),
+                coverPath = coverPath,
+                totalChapters = pageCount,
             )
         )
     }
@@ -153,6 +201,26 @@ class LibraryViewModel(
 
     fun clearError() { _error.value = null }
     fun clearInfo() { _info.value = null }
+}
+
+private fun Uri.isPdf(context: Context): Boolean {
+    // 1) MIME type kontrolü (content:// URI için en güvenilir yol)
+    val mime = context.contentResolver.getType(this)?.lowercase()
+    if (mime == "application/pdf") return true
+
+    // 2) Görünen dosya adı kontrolü (OpenableColumns)
+    val displayName = runCatching {
+        var name: String? = null
+        val cursor: Cursor? = context.contentResolver.query(
+            this, arrayOf(OpenableColumns.DISPLAY_NAME), null, null, null
+        )
+        cursor?.use { if (it.moveToFirst()) name = it.getString(0) }
+        name
+    }.getOrNull()
+    if (displayName?.lowercase()?.endsWith(".pdf") == true) return true
+
+    // 3) URI string kontrolü (file:// URI için)
+    return toString().lowercase().let { it.endsWith(".pdf") || it.contains(".pdf?") }
 }
 
 private fun List<Book>.filtered(query: String): List<Book> {

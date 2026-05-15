@@ -1,6 +1,7 @@
 package com.kryptow.epub.reader.bookreader.ui.navigation
 
 sealed class Screen(val route: String) {
+    data object Onboarding : Screen("onboarding")
     data object Library : Screen("library")
     data object Reader : Screen("reader/{bookId}") {
         fun createRoute(bookId: Long) = "reader/$bookId"

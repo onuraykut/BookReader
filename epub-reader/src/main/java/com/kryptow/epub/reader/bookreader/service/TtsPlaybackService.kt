@@ -13,8 +13,9 @@ import android.support.v4.media.session.MediaSessionCompat
 import android.support.v4.media.session.PlaybackStateCompat
 import androidx.core.app.NotificationCompat
 import androidx.media.MediaBrowserServiceCompat
-import androidx.media.app.notification.MediaStyle
+import androidx.media.app.NotificationCompat as MediaNotificationCompat
 import androidx.media.session.MediaButtonReceiver
+import com.kryptow.epub.reader.R
 import com.kryptow.epub.reader.bookreader.car.TtsPlaybackState
 import com.kryptow.epub.reader.bookreader.domain.repository.BookRepository
 import com.kryptow.epub.reader.bookreader.epub.EpubParser
@@ -115,7 +116,7 @@ class TtsPlaybackService : MediaBrowserServiceCompat() {
         parentId: String,
         result: Result<MutableList<MediaBrowserCompat.MediaItem>>
     ) {
-        result.detachResults()
+        result.detach()
         scope.launch {
             val items: MutableList<MediaBrowserCompat.MediaItem> = when {
                 parentId == MEDIA_ROOT_ID -> loadBookItems()
@@ -150,7 +151,7 @@ class TtsPlaybackService : MediaBrowserServiceCompat() {
                 MediaBrowserCompat.MediaItem(
                     MediaDescriptionCompat.Builder()
                         .setMediaId("$BOOK_ID_PREFIX${bookId}${CHAPTER_ID_SEPARATOR}${index}")
-                        .setTitle(chapter.title.ifBlank { "Bölüm ${index + 1}" })
+                        .setTitle(chapter.title.ifBlank { getString(R.string.chapter_format, index + 1) })
                         .build(),
                     MediaBrowserCompat.MediaItem.FLAG_PLAYABLE
                 )
@@ -177,7 +178,7 @@ class TtsPlaybackService : MediaBrowserServiceCompat() {
         val chapter = epub.chapters.getOrNull(chapterIndex) ?: return
         ttsManager.setContent(chapter.content)
 
-        val chapterTitle = chapter.title.ifBlank { "Bölüm ${chapterIndex + 1}" }
+        val chapterTitle = chapter.title.ifBlank { getString(R.string.chapter_format, chapterIndex + 1) }
         mediaSession.setMetadata(
             MediaMetadataCompat.Builder()
                 .putString(MediaMetadataCompat.METADATA_KEY_TITLE, book.title)
@@ -249,16 +250,16 @@ class TtsPlaybackService : MediaBrowserServiceCompat() {
 
         return NotificationCompat.Builder(this, CHANNEL_ID)
             .setStyle(
-                MediaStyle()
+                MediaNotificationCompat.MediaStyle()
                     .setMediaSession(mediaSession.sessionToken)
                     .setShowActionsInCompactView(0, 1, 2)
             )
             .setSmallIcon(android.R.drawable.ic_media_play)
-            .setContentTitle(state.bookTitle.ifEmpty { "BookReader" })
+            .setContentTitle(state.bookTitle.ifEmpty { "Lumen" })
             .setContentText(state.chapterTitle)
             .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
             .addAction(
-                android.R.drawable.ic_media_previous, "Önceki",
+                android.R.drawable.ic_media_previous, getString(R.string.reader_previous_chapter),
                 MediaButtonReceiver.buildMediaButtonPendingIntent(
                     this, PlaybackStateCompat.ACTION_SKIP_TO_PREVIOUS
                 )
@@ -266,13 +267,13 @@ class TtsPlaybackService : MediaBrowserServiceCompat() {
             .addAction(
                 if (isPlaying) android.R.drawable.ic_media_pause
                 else android.R.drawable.ic_media_play,
-                if (isPlaying) "Durdur" else "Oynat",
+                getString(if (isPlaying) R.string.tts_stop else R.string.tts_play),
                 MediaButtonReceiver.buildMediaButtonPendingIntent(
                     this, PlaybackStateCompat.ACTION_PLAY_PAUSE
                 )
             )
             .addAction(
-                android.R.drawable.ic_media_next, "Sonraki",
+                android.R.drawable.ic_media_next, getString(R.string.reader_next_chapter),
                 MediaButtonReceiver.buildMediaButtonPendingIntent(
                     this, PlaybackStateCompat.ACTION_SKIP_TO_NEXT
                 )

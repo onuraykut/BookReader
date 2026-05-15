@@ -32,10 +32,12 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.kryptow.epub.reader.R
 import com.kryptow.epub.reader.bookreader.ui.screen.reader.TtsUiState
 
 private val TTS_SPEEDS = listOf(0.5f, 0.75f, 1.0f, 1.25f, 1.5f, 2.0f)
@@ -98,7 +100,7 @@ fun TtsControlBar(
                     horizontalArrangement = Arrangement.End,
                 ) {
                     Text(
-                        text = "${state.currentSentenceIndex + 1} / ${state.totalSentences} cümle",
+                        text = stringResource(R.string.tts_sentence_format, state.currentSentenceIndex + 1, state.totalSentences),
                         color = textColor.copy(alpha = 0.45f),
                         fontSize = 10.sp,
                     )
@@ -136,7 +138,7 @@ fun TtsControlBar(
                     IconButton(onClick = onPrev, modifier = Modifier.size(40.dp)) {
                         Icon(
                             Icons.Default.SkipPrevious,
-                            contentDescription = "Önceki cümle",
+                            contentDescription = stringResource(R.string.tts_previous),
                             tint = textColor,
                             modifier = Modifier.size(26.dp),
                         )
@@ -148,8 +150,10 @@ fun TtsControlBar(
                         Icon(
                             imageVector = if (state.playState == TtsPlayState.PLAYING)
                                 Icons.Default.Pause else Icons.Default.PlayArrow,
-                            contentDescription = if (state.playState == TtsPlayState.PLAYING)
-                                "Duraklat" else "Oynat",
+                            contentDescription = stringResource(
+                                if (state.playState == TtsPlayState.PLAYING) R.string.tts_pause
+                                else R.string.tts_play
+                            ),
                             tint = accentColor,
                             modifier = Modifier.size(34.dp),
                         )
@@ -157,7 +161,7 @@ fun TtsControlBar(
                     IconButton(onClick = onNext, modifier = Modifier.size(40.dp)) {
                         Icon(
                             Icons.Default.SkipNext,
-                            contentDescription = "Sonraki cümle",
+                            contentDescription = stringResource(R.string.tts_next),
                             tint = textColor,
                             modifier = Modifier.size(26.dp),
                         )
@@ -174,7 +178,7 @@ fun TtsControlBar(
                     IconButton(onClick = onStop, modifier = Modifier.size(36.dp)) {
                         Icon(
                             Icons.Default.Stop,
-                            contentDescription = "Durdur",
+                            contentDescription = stringResource(R.string.tts_stop),
                             tint = textColor.copy(alpha = 0.55f),
                             modifier = Modifier.size(22.dp),
                         )

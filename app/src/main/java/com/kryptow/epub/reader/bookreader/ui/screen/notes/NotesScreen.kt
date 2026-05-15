@@ -53,6 +53,8 @@ import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.res.stringResource
+import com.kryptow.epub.reader.R as LibR
 import com.kryptow.epub.reader.bookreader.domain.model.Highlight
 import com.kryptow.epub.reader.bookreader.domain.model.HighlightColor
 import org.koin.androidx.compose.koinViewModel
@@ -76,10 +78,10 @@ fun NotesScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Notlar ve Vurgular") },
+                title = { Text(stringResource(LibR.string.notes_title)) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, "Geri")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(LibR.string.back))
                     }
                 },
                 actions = {
@@ -89,11 +91,11 @@ fun NotesScreen(
                         val intent = Intent(Intent.ACTION_SEND).apply {
                             type = "text/plain"
                             putExtra(Intent.EXTRA_TEXT, txt)
-                            putExtra(Intent.EXTRA_SUBJECT, "Notlar ve Vurgular")
+                            putExtra(Intent.EXTRA_SUBJECT, context.getString(LibR.string.notes_title))
                         }
-                        context.startActivity(Intent.createChooser(intent, "Dışa Aktar"))
+                        context.startActivity(Intent.createChooser(intent, context.getString(LibR.string.notes_title)))
                     }) {
-                        Icon(Icons.Default.Share, "Dışa Aktar")
+                        Icon(Icons.Default.Share, stringResource(LibR.string.notes_title))
                     }
                 },
             )
@@ -121,8 +123,7 @@ fun NotesScreen(
                         )
                         Spacer(Modifier.height(8.dp))
                         Text(
-                            text = if (colorFilter == null) "Henüz vurgu yok"
-                            else "${colorFilter!!.labelTr} renkli vurgu yok",
+                            text = stringResource(LibR.string.notes_empty),
                             style = MaterialTheme.typography.bodyLarge,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
@@ -171,13 +172,13 @@ private fun ColorFilterRow(
         FilterChip(
             selected = selected == null,
             onClick = { onSelect(null) },
-            label = { Text("Tümü") },
+            label = { Text(stringResource(LibR.string.library_tab_all)) },
         )
         HighlightColor.entries.forEach { color ->
             FilterChip(
                 selected = selected == color,
                 onClick = { onSelect(if (selected == color) null else color) },
-                label = { Text(color.labelTr) },
+                label = { Text(stringResource(color.labelRes)) },
                 leadingIcon = {
                     Box(
                         modifier = Modifier
@@ -247,7 +248,7 @@ private fun HighlightCard(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Text(
-                    text = "Bölüm ${highlight.page + 1}  •  ${formatDate(highlight.timestamp)}",
+                    text = "${stringResource(LibR.string.chapter_format, highlight.page + 1)}  •  ${formatDate(highlight.timestamp)}",
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.weight(1f),
@@ -255,7 +256,7 @@ private fun HighlightCard(
                 IconButton(onClick = onEdit, modifier = Modifier.size(32.dp)) {
                     Icon(
                         Icons.Default.Edit,
-                        contentDescription = "Not ekle/düzenle",
+                        contentDescription = stringResource(LibR.string.notes_edit),
                         modifier = Modifier.size(18.dp),
                         tint = MaterialTheme.colorScheme.primary,
                     )
@@ -284,14 +285,14 @@ private fun NoteEditDialog(
     var text by remember { mutableStateOf(initialNote) }
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Not Ekle / Düzenle") },
+        title = { Text(stringResource(LibR.string.highlight_note_title)) },
         text = {
             OutlinedTextField(
                 value = text,
                 onValueChange = { text = it },
                 modifier = Modifier.fillMaxWidth(),
                 label = { Text("Notunuz") },
-                placeholder = { Text("Bu vurgu için not yazın...") },
+                placeholder = { Text(stringResource(LibR.string.highlight_note_placeholder)) },
                 minLines = 3,
                 maxLines = 6,
             )
@@ -300,7 +301,7 @@ private fun NoteEditDialog(
             TextButton(onClick = { onConfirm(text) }) { Text("Kaydet") }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) { Text("İptal") }
+            TextButton(onClick = onDismiss) { Text(stringResource(LibR.string.cancel)) }
         },
     )
 }

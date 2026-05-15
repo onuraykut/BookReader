@@ -34,6 +34,7 @@ class UserPreferencesDataStore(private val context: Context) {
         val AUTO_NIGHT_END = intPreferencesKey("auto_night_end")
         val KEEP_SCREEN_ON = booleanPreferencesKey("keep_screen_on")
         val SCROLL_MODE = stringPreferencesKey("scroll_mode")
+        val ONBOARDING_SHOWN = booleanPreferencesKey("onboarding_shown")
     }
 
     val readingPreferences: Flow<ReadingPreferences> = context.dataStore.data.map { p ->
@@ -50,6 +51,14 @@ class UserPreferencesDataStore(private val context: Context) {
             keepScreenOn = p[Keys.KEEP_SCREEN_ON] ?: true,
             scrollMode = enumOrDefault(p[Keys.SCROLL_MODE], ScrollMode.VERTICAL),
         )
+    }
+
+    val onboardingShown: Flow<Boolean> = context.dataStore.data.map { p ->
+        p[Keys.ONBOARDING_SHOWN] ?: false
+    }
+
+    suspend fun markOnboardingShown() {
+        context.dataStore.edit { p -> p[Keys.ONBOARDING_SHOWN] = true }
     }
 
     suspend fun updatePreferences(prefs: ReadingPreferences) {

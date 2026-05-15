@@ -10,6 +10,7 @@ import androidx.car.app.model.Row
 import androidx.car.app.model.Template
 import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.LifecycleOwner
+import com.kryptow.epub.reader.R
 import com.kryptow.epub.reader.bookreader.car.TtsPlaybackState
 import com.kryptow.epub.reader.bookreader.service.TtsPlaybackService
 import kotlinx.coroutines.CoroutineScope
@@ -41,11 +42,11 @@ class PlayerCarScreen(carContext: CarContext) : Screen(carContext) {
 
     override fun onGetTemplate(): Template {
         val infoRow = Row.Builder()
-            .setTitle(state.bookTitle.ifEmpty { "BookReader" })
+            .setTitle(state.bookTitle.ifEmpty { "Lumen" })
             .addText(state.chapterTitle.ifEmpty { "—" })
             .apply {
                 if (state.totalChapters > 0) {
-                    addText("Bölüm ${state.chapterIndex + 1} / ${state.totalChapters}")
+                    addText(carContext.getString(R.string.reader_chapter_format, state.chapterIndex + 1, state.totalChapters))
                 }
             }
             .build()
@@ -53,7 +54,7 @@ class PlayerCarScreen(carContext: CarContext) : Screen(carContext) {
         // Araç kısıtlamaları nedeniyle Pane'e en fazla 2 Action eklenebilir.
         // Oynatma durumuna göre hangi iki düğmenin gösterileceği belirlenir.
         val primaryAction = Action.Builder()
-            .setTitle(if (state.isPlaying) "Durdur" else "Oynat")
+            .setTitle(carContext.getString(if (state.isPlaying) R.string.tts_stop else R.string.tts_play))
             .setOnClickListener {
                 sendToService(
                     if (state.isPlaying) TtsPlaybackService.ACTION_PAUSE
@@ -63,7 +64,7 @@ class PlayerCarScreen(carContext: CarContext) : Screen(carContext) {
             .build()
 
         val skipAction = Action.Builder()
-            .setTitle(if (state.isPlaying) "Önceki Bölüm" else "Sonraki Bölüm")
+            .setTitle(carContext.getString(if (state.isPlaying) R.string.reader_previous_chapter else R.string.reader_next_chapter))
             .setOnClickListener {
                 sendToService(
                     if (state.isPlaying) TtsPlaybackService.ACTION_SKIP_PREV
@@ -79,7 +80,7 @@ class PlayerCarScreen(carContext: CarContext) : Screen(carContext) {
             .build()
 
         return PaneTemplate.Builder(pane)
-            .setTitle("Şimdi Okunuyor")
+            .setTitle(carContext.getString(R.string.car_now_playing))
             .setHeaderAction(Action.BACK)
             .build()
     }

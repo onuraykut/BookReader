@@ -16,6 +16,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.viewinterop.AndroidView
+import com.kryptow.epub.reader.R
 import com.kryptow.epub.reader.bookreader.domain.model.Highlight
 import com.kryptow.epub.reader.bookreader.domain.model.ReadingPreferences
 
@@ -161,11 +162,11 @@ fun PaginatedEpubWebView(
                         object : ActionMode.Callback {
                             override fun onCreateActionMode(mode: ActionMode?, menu: Menu?): Boolean {
                                 val result = callback?.onCreateActionMode(mode, menu) ?: true
-                                menu?.add(Menu.NONE, MENU_DEFINITION, Menu.NONE, "Tanım Göster")
+                                menu?.add(Menu.NONE, MENU_DEFINITION, Menu.NONE, ctx.getString(R.string.highlight_definition))
                                     ?.setShowAsAction(MenuItem.SHOW_AS_ACTION_ALWAYS)
-                                menu?.add(Menu.NONE, MENU_HIGHLIGHT, Menu.NONE, "Vurgula")
+                                menu?.add(Menu.NONE, MENU_HIGHLIGHT, Menu.NONE, ctx.getString(R.string.highlight_add))
                                     ?.setShowAsAction(MenuItem.SHOW_AS_ACTION_ALWAYS)
-                                menu?.add(Menu.NONE, MENU_NOTE, Menu.NONE, "Not Ekle")
+                                menu?.add(Menu.NONE, MENU_NOTE, Menu.NONE, ctx.getString(R.string.highlight_note_add))
                                     ?.setShowAsAction(MenuItem.SHOW_AS_ACTION_ALWAYS)
                                 return result
                             }
@@ -425,10 +426,7 @@ ${ttsScript()}
     if (dt > SWIPE_MAX_TIME) return;
     if (Math.abs(dy) > Math.abs(dx)) return;
     if (Math.abs(dx) < SWIPE_THRESHOLD) {
-      var x = t.clientX, w = window.innerWidth;
-      if (x < w / 3) goBackward();
-      else if (x > 2 * w / 3) goForward();
-      else if (window.AndroidPagination) AndroidPagination.onMiddleTap();
+      if (window.AndroidPagination) AndroidPagination.onMiddleTap();
       return;
     }
     if (dx < 0) goForward(); else goBackward();

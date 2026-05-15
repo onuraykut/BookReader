@@ -27,9 +27,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.kryptow.epub.reader.R
 import com.kryptow.epub.reader.bookreader.epub.model.EpubChapter
 import com.kryptow.epub.reader.bookreader.ui.reader.ReadingColors
 
@@ -86,13 +88,13 @@ fun TocSheet(
                 )
                 Spacer(Modifier.width(10.dp))
                 Text(
-                    text = "İçindekiler",
+                    text = stringResource(R.string.toc_title),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.SemiBold,
                 )
                 Spacer(Modifier.weight(1f))
                 Text(
-                    text = "${chapters.size} bölüm",
+                    text = stringResource(R.string.car_chapters_count, chapters.size),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -103,7 +105,7 @@ fun TocSheet(
                 itemsIndexed(chapters, key = { _, ch -> ch.href }) { index, chapter ->
                     TocRow(
                         index = index,
-                        title = chapter.title.ifBlank { "Bölüm ${index + 1}" },
+                        title = chapter.title.ifBlank { stringResource(R.string.chapter_format, index + 1) },
                         isActive = index == currentIndex,
                         onClick = { onChapterSelected(index) },
                     )

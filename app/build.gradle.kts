@@ -13,7 +13,7 @@ android {
     }
 
     defaultConfig {
-        applicationId = "com.kryptow.epub.reader.bookreader"
+        applicationId = "com.kryptow.lumen"
         minSdk = 24
         targetSdk = 36
         versionCode = 1
@@ -77,6 +77,9 @@ dependencies {
 
     // Android Auto desteği (AAOS için :automotive modülü kullanılır)
     implementation(libs.media)
+
+    // Splash Screen (Android 12+ API, eski sürümlere backport)
+    implementation(libs.androidx.splashscreen)
 
     // Test
     testImplementation(libs.junit)

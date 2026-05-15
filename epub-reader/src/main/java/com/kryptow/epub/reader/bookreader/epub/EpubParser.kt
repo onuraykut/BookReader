@@ -3,6 +3,7 @@ package com.kryptow.epub.reader.bookreader.epub
 import android.content.Context
 import android.net.Uri
 import android.util.Base64
+import com.kryptow.epub.reader.R
 import com.kryptow.epub.reader.bookreader.epub.model.EpubBook
 import com.kryptow.epub.reader.bookreader.epub.model.EpubChapter
 import kotlinx.coroutines.Dispatchers
@@ -41,9 +42,9 @@ class EpubParser(private val context: Context) {
         val root = opfDoc.documentElement
 
         val title = root.getElementsByTagName("dc:title")
-            .item(0)?.textContent?.trim() ?: "Bilinmeyen Başlık"
+            .item(0)?.textContent?.trim() ?: context.getString(R.string.error_unknown_title)
         val author = root.getElementsByTagName("dc:creator")
-            .item(0)?.textContent?.trim() ?: "Bilinmeyen Yazar"
+            .item(0)?.textContent?.trim() ?: context.getString(R.string.error_unknown_author)
 
         val manifest = buildManifest(root.getElementsByTagName("item"), opfDir)
         val spineIds = buildSpineOrder(root.getElementsByTagName("itemref"))
@@ -58,7 +59,7 @@ class EpubParser(private val context: Context) {
             val chapterDir = fullPath.substringBeforeLast("/", "")
             EpubChapter(
                 index = index,
-                title = tocTitles[href] ?: tocTitles[idRef] ?: "Bölüm ${index + 1}",
+                title = tocTitles[href] ?: tocTitles[idRef] ?: context.getString(R.string.chapter_format, index + 1),
                 content = inlineImages(stripToBodyContent(rawHtml), chapterDir, entries),
                 href = href,
             )

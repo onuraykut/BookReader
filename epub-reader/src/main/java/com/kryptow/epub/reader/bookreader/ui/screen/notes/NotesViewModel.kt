@@ -1,7 +1,9 @@
 package com.kryptow.epub.reader.bookreader.ui.screen.notes
 
+import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.kryptow.epub.reader.R
 import com.kryptow.epub.reader.bookreader.domain.model.Highlight
 import com.kryptow.epub.reader.bookreader.domain.model.HighlightColor
 import com.kryptow.epub.reader.bookreader.domain.usecase.DeleteHighlightUseCase
@@ -20,6 +22,7 @@ class NotesViewModel(
     getHighlightsUseCase: GetHighlightsUseCase,
     private val updateHighlightUseCase: UpdateHighlightUseCase,
     private val deleteHighlightUseCase: DeleteHighlightUseCase,
+    private val context: Context,
 ) : ViewModel() {
 
     private val _raw = getHighlightsUseCase(bookId)
@@ -61,23 +64,23 @@ class NotesViewModel(
     fun exportAsTxt(): String {
         val list = _raw.value.sortedWith(compareBy({ it.page }, { it.timestamp }))
         return buildString {
-            appendLine("=== Notlar ve Vurgular ===")
+            appendLine("=== ${context.getString(R.string.notes_title)} ===")
             appendLine()
             var lastPage = -1
             list.forEach { h ->
                 if (h.page != lastPage) {
-                    appendLine("── Bölüm ${h.page + 1} ──────────────────────────")
+                    appendLine("── ${context.getString(R.string.chapter_format, h.page + 1)} ──")
                     lastPage = h.page
                 }
                 appendLine("\"${h.selectedText}\"")
-                if (h.note != null) appendLine("Not: ${h.note}")
-                appendLine("(${h.color.labelTr}, ${formatDateExport(h.timestamp)})")
+                if (h.note != null) appendLine(h.note)
+                appendLine("(${context.getString(h.color.labelRes)}, ${formatDateExport(h.timestamp)})")
                 appendLine()
             }
         }
     }
 
     private fun formatDateExport(ts: Long): String =
-        java.text.SimpleDateFormat("d MMM yyyy HH:mm", java.util.Locale("tr"))
+        java.text.SimpleDateFormat("d MMM yyyy HH:mm", java.util.Locale.getDefault())
             .format(java.util.Date(ts))
 }

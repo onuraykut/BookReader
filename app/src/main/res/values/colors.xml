@@ -7,4 +7,8 @@
     <color name="teal_700">#FF018786</color>
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
+
+    <!-- Lumen brand -->
+    <color name="lumen_splash_bg">#FF0A1124</color>
+    <color name="lumen_gold">#FFFFD27A</color>
 </resources>

@@ -24,6 +24,7 @@ import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Book
@@ -32,9 +33,11 @@ import androidx.compose.material.icons.filled.CreateNewFolder
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material.icons.filled.GridView
+import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.ViewList
+import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -64,9 +67,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
+import com.kryptow.epub.reader.R as LibR
 import com.kryptow.epub.reader.bookreader.domain.model.Book
 import org.koin.androidx.compose.koinViewModel
 
@@ -99,7 +104,7 @@ fun LibraryScreen(
                     it, Intent.FLAG_GRANT_READ_URI_PERMISSION,
                 )
             }
-            viewModel.importEpub(it)
+            viewModel.importFile(it)
         }
     }
 
@@ -132,18 +137,17 @@ fun LibraryScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Kütüphane") },
+                title = { Text(stringResource(LibR.string.library_title)) },
                 actions = {
-                    // Grid / List toggle
                     IconButton(onClick = { viewModel.toggleViewMode() }) {
                         Icon(
                             imageVector = if (viewMode == LibraryViewMode.GRID)
                                 Icons.Default.ViewList else Icons.Default.GridView,
-                            contentDescription = "Görünüm değiştir",
+                            contentDescription = stringResource(LibR.string.library_change_view),
                         )
                     }
                     IconButton(onClick = onSettingsClick) {
-                        Icon(Icons.Default.Settings, contentDescription = "Ayarlar")
+                        Icon(Icons.Default.Settings, contentDescription = stringResource(LibR.string.settings))
                     }
                 }
             )
@@ -154,16 +158,21 @@ fun LibraryScreen(
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 SmallFloatingActionButton(onClick = { folderPicker.launch(null) }) {
-                    Icon(Icons.Default.CreateNewFolder, contentDescription = "Klasör Tara")
+                    Icon(Icons.Default.CreateNewFolder, contentDescription = stringResource(LibR.string.library_scan_folder))
                 }
                 FloatingActionButton(
                     onClick = {
                         epubPicker.launch(
-                            arrayOf("application/epub+zip", "application/octet-stream", "*/*")
+                            arrayOf(
+                                "application/epub+zip",
+                                "application/pdf",
+                                "application/octet-stream",
+                                "*/*",
+                            )
                         )
                     }
                 ) {
-                    Icon(Icons.Default.Add, contentDescription = "EPUB Ekle")
+                    Icon(Icons.Default.Add, contentDescription = stringResource(LibR.string.library_add_book))
                 }
             }
         },
@@ -189,17 +198,17 @@ fun LibraryScreen(
                 Tab(
                     selected = selectedTab == LibraryTab.ALL,
                     onClick = { viewModel.selectTab(LibraryTab.ALL) },
-                    text = { Text("Tümü (${allBooks.size})") },
+                    text = { Text("${stringResource(LibR.string.library_tab_all)} (${allBooks.size})") },
                 )
                 Tab(
                     selected = selectedTab == LibraryTab.RECENT,
                     onClick = { viewModel.selectTab(LibraryTab.RECENT) },
-                    text = { Text("Son Okunanlar") },
+                    text = { Text(stringResource(LibR.string.library_tab_recent)) },
                 )
                 Tab(
                     selected = selectedTab == LibraryTab.FAVORITES,
                     onClick = { viewModel.selectTab(LibraryTab.FAVORITES) },
-                    text = { Text("Favoriler") },
+                    text = { Text(stringResource(LibR.string.library_tab_favorites)) },
                 )
             }
 
@@ -210,7 +219,20 @@ fun LibraryScreen(
                         CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
 
                     displayedBooks.isEmpty() ->
-                        EmptyState(tab = selectedTab, modifier = Modifier.align(Alignment.Center))
+                        EmptyState(
+                            tab = selectedTab,
+                            onAddBook = {
+                                epubPicker.launch(
+                                    arrayOf(
+                                        "application/epub+zip",
+                                        "application/pdf",
+                                        "application/octet-stream",
+                                        "*/*",
+                                    )
+                                )
+                            },
+                            modifier = Modifier.align(Alignment.Center),
+                        )
 
                     viewMode == LibraryViewMode.GRID ->
                         BookGrid(
@@ -245,32 +267,78 @@ fun LibraryScreen(
 // ─── Boş durum ────────────────────────────────────────────────────────────────
 
 @Composable
-private fun EmptyState(tab: LibraryTab, modifier: Modifier = Modifier) {
-    val (icon, title, subtitle) = when (tab) {
-        LibraryTab.ALL -> Triple(
-            Icons.Default.Book,
-            "Kütüphaneniz boş",
-            "+ ile EPUB ekleyin veya klasör tarayın",
-        )
-        LibraryTab.RECENT -> Triple(
-            Icons.Default.Book,
-            "Henüz okuma yapmadınız",
-            "Bir kitap açarak başlayın",
-        )
-        LibraryTab.FAVORITES -> Triple(
-            Icons.Default.FavoriteBorder,
-            "Favori kitap yok",
-            "Kitap kartındaki ♡ ile favorilere ekleyin",
-        )
+private fun EmptyState(
+    tab: LibraryTab,
+    onAddBook: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val icon = when (tab) {
+        LibraryTab.ALL -> Icons.Default.Book
+        LibraryTab.RECENT -> Icons.Default.History
+        LibraryTab.FAVORITES -> Icons.Default.FavoriteBorder
     }
+    val titleRes = when (tab) {
+        LibraryTab.ALL -> LibR.string.library_empty_all_title
+        LibraryTab.RECENT -> LibR.string.library_empty_recent_title
+        LibraryTab.FAVORITES -> LibR.string.library_empty_favorites_title
+    }
+    val descRes = when (tab) {
+        LibraryTab.ALL -> LibR.string.library_empty_all_desc
+        LibraryTab.RECENT -> LibR.string.library_empty_recent_desc
+        LibraryTab.FAVORITES -> LibR.string.library_empty_favorites_desc
+    }
+
     Column(
-        modifier = modifier.padding(32.dp),
+        modifier = modifier.padding(horizontal = 40.dp, vertical = 32.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(8.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
-        Icon(icon, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
-        Text(title, style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        Text(subtitle, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        // Large icon with tinted circle background
+        Box(
+            modifier = Modifier
+                .size(96.dp)
+                .clip(CircleShape)
+                .background(MaterialTheme.colorScheme.primaryContainer),
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                modifier = Modifier.size(44.dp),
+                tint = MaterialTheme.colorScheme.onPrimaryContainer,
+            )
+        }
+
+        Spacer(Modifier.height(4.dp))
+
+        Text(
+            text = stringResource(titleRes),
+            style = MaterialTheme.typography.titleLarge,
+            color = MaterialTheme.colorScheme.onBackground,
+        )
+
+        Text(
+            text = stringResource(descRes),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+        )
+
+        if (tab == LibraryTab.ALL) {
+            Spacer(Modifier.height(8.dp))
+            FilledTonalButton(
+                onClick = onAddBook,
+                shape = MaterialTheme.shapes.large,
+            ) {
+                Icon(
+                    Icons.Default.Add,
+                    contentDescription = null,
+                    modifier = Modifier.size(18.dp),
+                )
+                Spacer(Modifier.width(8.dp))
+                Text(stringResource(LibR.string.library_add_book))
+            }
+        }
     }
 }
 
@@ -323,7 +391,7 @@ private fun BookGridCard(
             ) {
                 if (book.coverPath != null) {
                     AsyncImage(
-                        model = book.coverPath,
+                        model = java.io.File(book.coverPath!!),
                         contentDescription = book.title,
                         contentScale = ContentScale.Crop,
                         modifier = Modifier.fillMaxSize(),
@@ -438,7 +506,7 @@ private fun BookListRow(
         ) {
             if (book.coverPath != null) {
                 AsyncImage(
-                    model = book.coverPath,
+                    model = java.io.File(book.coverPath!!),
                     contentDescription = book.title,
                     contentScale = ContentScale.Crop,
                     modifier = Modifier.fillMaxSize(),
@@ -476,7 +544,7 @@ private fun BookListRow(
                     modifier = Modifier.fillMaxWidth(),
                 )
                 Text(
-                    text = "Bölüm ${book.currentChapter + 1} / ${book.totalChapters}  •  %.0f%%".format(book.readingProgressPercent),
+                    text = "${stringResource(LibR.string.reader_chapter_format, book.currentChapter + 1, book.totalChapters)}  •  %.0f%%".format(book.readingProgressPercent),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -510,7 +578,7 @@ private fun LibrarySearchBar(
         value = query,
         onValueChange = onQueryChange,
         modifier = modifier,
-        placeholder = { Text("Başlık veya yazar ara...") },
+        placeholder = { Text(stringResource(LibR.string.library_search_placeholder)) },
         leadingIcon = {
             Icon(Icons.Default.Search, contentDescription = "Ara")
         },

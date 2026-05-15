@@ -40,6 +40,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
@@ -47,6 +48,7 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
+import com.kryptow.epub.reader.R
 import com.kryptow.epub.reader.bookreader.ui.screen.reader.SearchResult
 
 /**
@@ -89,10 +91,10 @@ fun SearchSheet(
                 modifier = Modifier.fillMaxWidth(),
             ) {
                 IconButton(onClick = onDismiss, modifier = Modifier.size(36.dp)) {
-                    Icon(Icons.AutoMirrored.Filled.ArrowBack, "Kapat")
+                    Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.close))
                 }
                 Spacer(Modifier.width(4.dp))
-                Text("Kitapta Ara", style = MaterialTheme.typography.titleMedium)
+                Text(stringResource(R.string.search_in_book), style = MaterialTheme.typography.titleMedium)
             }
 
             Spacer(Modifier.height(8.dp))
@@ -104,12 +106,12 @@ fun SearchSheet(
                 modifier = Modifier
                     .fillMaxWidth()
                     .focusRequester(focusRequester),
-                placeholder = { Text("Aranacak kelimeyi girin…") },
+                placeholder = { Text(stringResource(R.string.search_placeholder)) },
                 leadingIcon = { Icon(Icons.Default.Search, null) },
                 trailingIcon = {
                     if (query.isNotBlank()) {
                         IconButton(onClick = { onQueryChange("") }) {
-                            Icon(Icons.Default.Clear, "Temizle")
+                            Icon(Icons.Default.Clear, stringResource(R.string.close))
                         }
                     }
                 },
@@ -128,22 +130,22 @@ fun SearchSheet(
                     horizontalArrangement = Arrangement.SpaceBetween,
                 ) {
                     Text(
-                        text = "Bu sayfada: $currentChapterMatchIndex / $currentChapterMatchCount",
+                        text = stringResource(R.string.search_result_format, currentChapterMatchIndex, currentChapterMatchCount),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                     Row {
                         IconButton(onClick = onPrevMatch, modifier = Modifier.size(36.dp)) {
-                            Icon(Icons.AutoMirrored.Filled.NavigateBefore, "Önceki")
+                            Icon(Icons.AutoMirrored.Filled.NavigateBefore, stringResource(R.string.reader_previous_chapter))
                         }
                         IconButton(onClick = onNextMatch, modifier = Modifier.size(36.dp)) {
-                            Icon(Icons.AutoMirrored.Filled.NavigateNext, "Sonraki")
+                            Icon(Icons.AutoMirrored.Filled.NavigateNext, stringResource(R.string.reader_next_chapter))
                         }
                     }
                 }
             } else if (query.isNotBlank() && results.isEmpty()) {
                 Text(
-                    text = "Sonuç bulunamadı",
+                    text = stringResource(R.string.search_no_results),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(vertical = 4.dp),
@@ -155,7 +157,7 @@ fun SearchSheet(
             // ─── Tüm bölümlerdeki sonuçlar ────────────────────────────────
             if (results.isNotEmpty()) {
                 Text(
-                    text = "${results.size} bölümde bulundu",
+                    text = stringResource(R.string.car_chapters_count, results.size),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(bottom = 4.dp),
@@ -194,7 +196,7 @@ private fun SearchResultRow(
             .padding(vertical = 8.dp, horizontal = 4.dp),
     ) {
         Text(
-            text = "Bölüm ${result.chapterIndex + 1}",
+            text = stringResource(R.string.chapter_format, result.chapterIndex + 1),
             style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.primary,
         )

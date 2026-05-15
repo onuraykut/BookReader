@@ -28,13 +28,14 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import com.kryptow.epub.reader.R
 import com.kryptow.epub.reader.bookreader.domain.model.DayTheme
 import com.kryptow.epub.reader.bookreader.domain.model.NightTheme
 import com.kryptow.epub.reader.bookreader.domain.model.ReadingFontFamily
 import com.kryptow.epub.reader.bookreader.domain.model.ScrollMode
 import com.kryptow.epub.reader.bookreader.domain.model.ThemeMode
-import com.kryptow.epub.reader.bookreader.ui.reader.label
 import org.koin.androidx.compose.koinViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -48,10 +49,13 @@ fun SettingsScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Okuma Ayarları") },
+                title = { Text(stringResource(R.string.settings_title)) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Geri")
+                        Icon(
+                            Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = stringResource(R.string.back),
+                        )
                     }
                 }
             )
@@ -66,29 +70,30 @@ fun SettingsScreen(
         ) {
             Spacer(Modifier.height(16.dp))
 
-            // ─── Tema Modu ─────────────────────────────────
-            Section("Tema Modu") {
+            Section(stringResource(R.string.settings_theme_mode)) {
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     ThemeMode.entries.forEach { mode ->
                         FilterChip(
                             selected = prefs.themeMode == mode,
                             onClick = { viewModel.updatePreferences(prefs.copy(themeMode = mode)) },
                             label = {
-                                Text(when (mode) {
-                                    ThemeMode.DAY -> "Gündüz"
-                                    ThemeMode.NIGHT -> "Gece"
-                                    ThemeMode.AUTO -> "Otomatik"
-                                })
+                                Text(stringResource(when (mode) {
+                                    ThemeMode.DAY -> R.string.settings_theme_day
+                                    ThemeMode.NIGHT -> R.string.settings_theme_night
+                                    ThemeMode.AUTO -> R.string.settings_theme_auto
+                                }))
                             }
                         )
                     }
                 }
             }
 
-            // Otomatik modda saat aralığı göster
             if (prefs.themeMode == ThemeMode.AUTO) {
                 Spacer(Modifier.height(16.dp))
-                Section("Gece Modu Başlangıcı: ${"%02d:00".format(prefs.autoNightStartHour)}") {
+                Section(stringResource(
+                    R.string.settings_night_start,
+                    "%02d:00".format(prefs.autoNightStartHour),
+                )) {
                     Slider(
                         value = prefs.autoNightStartHour.toFloat(),
                         onValueChange = { viewModel.updatePreferences(prefs.copy(autoNightStartHour = it.toInt())) },
@@ -97,7 +102,10 @@ fun SettingsScreen(
                     )
                 }
                 Spacer(Modifier.height(8.dp))
-                Section("Gece Modu Bitişi: ${"%02d:00".format(prefs.autoNightEndHour)}") {
+                Section(stringResource(
+                    R.string.settings_night_end,
+                    "%02d:00".format(prefs.autoNightEndHour),
+                )) {
                     Slider(
                         value = prefs.autoNightEndHour.toFloat(),
                         onValueChange = { viewModel.updatePreferences(prefs.copy(autoNightEndHour = it.toInt())) },
@@ -109,19 +117,18 @@ fun SettingsScreen(
 
             Spacer(Modifier.height(24.dp))
 
-            // ─── Gündüz Tema Varyantı ──────────────────────
-            Section("Gündüz Teması") {
+            Section(stringResource(R.string.settings_day_theme)) {
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     DayTheme.entries.forEach { t ->
                         FilterChip(
                             selected = prefs.dayTheme == t,
                             onClick = { viewModel.updatePreferences(prefs.copy(dayTheme = t)) },
                             label = {
-                                Text(when (t) {
-                                    DayTheme.WHITE -> "Beyaz"
-                                    DayTheme.CREAM -> "Krem"
-                                    DayTheme.LIGHT_BLUE -> "Açık Mavi"
-                                })
+                                Text(stringResource(when (t) {
+                                    DayTheme.WHITE -> R.string.theme_day_white
+                                    DayTheme.CREAM -> R.string.theme_day_cream
+                                    DayTheme.LIGHT_BLUE -> R.string.theme_day_light_blue
+                                }))
                             }
                         )
                     }
@@ -130,19 +137,18 @@ fun SettingsScreen(
 
             Spacer(Modifier.height(16.dp))
 
-            // ─── Gece Tema Varyantı ────────────────────────
-            Section("Gece Teması") {
+            Section(stringResource(R.string.settings_night_theme)) {
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     NightTheme.entries.forEach { t ->
                         FilterChip(
                             selected = prefs.nightTheme == t,
                             onClick = { viewModel.updatePreferences(prefs.copy(nightTheme = t)) },
                             label = {
-                                Text(when (t) {
-                                    NightTheme.TRUE_BLACK -> "Tam Siyah"
-                                    NightTheme.DARK_GRAY -> "Koyu Gri"
-                                    NightTheme.SEPIA -> "Sepya"
-                                })
+                                Text(stringResource(when (t) {
+                                    NightTheme.TRUE_BLACK -> R.string.theme_night_black
+                                    NightTheme.DARK_GRAY -> R.string.theme_night_dark_gray
+                                    NightTheme.SEPIA -> R.string.theme_night_sepia
+                                }))
                             }
                         )
                     }
@@ -151,8 +157,7 @@ fun SettingsScreen(
 
             Spacer(Modifier.height(28.dp))
 
-            // ─── Font Ailesi ───────────────────────────────
-            Section("Yazı Tipi") {
+            Section(stringResource(R.string.settings_font_family)) {
                 Row(
                     modifier = Modifier.horizontalScroll(rememberScrollState()),
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -161,7 +166,7 @@ fun SettingsScreen(
                         FilterChip(
                             selected = prefs.fontFamily == f,
                             onClick = { viewModel.updatePreferences(prefs.copy(fontFamily = f)) },
-                            label = { Text(f.label()) },
+                            label = { Text(stringResource(f.labelRes())) },
                         )
                     }
                 }
@@ -169,8 +174,7 @@ fun SettingsScreen(
 
             Spacer(Modifier.height(20.dp))
 
-            // ─── Yazı Boyutu ───────────────────────────────
-            Section("Yazı Boyutu: ${prefs.fontSize.toInt()}pt") {
+            Section(stringResource(R.string.settings_font_size, prefs.fontSize.toInt())) {
                 Slider(
                     value = prefs.fontSize,
                     onValueChange = { viewModel.updatePreferences(prefs.copy(fontSize = it)) },
@@ -181,8 +185,7 @@ fun SettingsScreen(
 
             Spacer(Modifier.height(12.dp))
 
-            // ─── Satır Aralığı ─────────────────────────────
-            Section("Satır Aralığı: ${"%.1fx".format(prefs.lineHeight)}") {
+            Section(stringResource(R.string.settings_line_height, "%.1fx".format(prefs.lineHeight))) {
                 Slider(
                     value = prefs.lineHeight,
                     onValueChange = { viewModel.updatePreferences(prefs.copy(lineHeight = it)) },
@@ -193,8 +196,7 @@ fun SettingsScreen(
 
             Spacer(Modifier.height(12.dp))
 
-            // ─── Kenar Boşluğu ─────────────────────────────
-            Section("Kenar Boşluğu: ${prefs.marginHorizontal}dp") {
+            Section(stringResource(R.string.settings_margin, prefs.marginHorizontal)) {
                 Slider(
                     value = prefs.marginHorizontal.toFloat(),
                     onValueChange = { viewModel.updatePreferences(prefs.copy(marginHorizontal = it.toInt())) },
@@ -205,18 +207,17 @@ fun SettingsScreen(
 
             Spacer(Modifier.height(20.dp))
 
-            // ─── Sayfa Modu ────────────────────────────────
-            Section("Kaydırma Modu") {
+            Section(stringResource(R.string.settings_scroll_mode)) {
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     ScrollMode.entries.forEach { m ->
                         FilterChip(
                             selected = prefs.scrollMode == m,
                             onClick = { viewModel.updatePreferences(prefs.copy(scrollMode = m)) },
                             label = {
-                                Text(when (m) {
-                                    ScrollMode.VERTICAL -> "Dikey Kaydırma"
-                                    ScrollMode.HORIZONTAL_PAGE -> "Sayfa Çevirme"
-                                })
+                                Text(stringResource(when (m) {
+                                    ScrollMode.VERTICAL -> R.string.scroll_mode_vertical
+                                    ScrollMode.HORIZONTAL_PAGE -> R.string.scroll_mode_paginated
+                                }))
                             }
                         )
                     }
@@ -225,13 +226,12 @@ fun SettingsScreen(
 
             Spacer(Modifier.height(24.dp))
 
-            // ─── Ekran Açık Tut ────────────────────────────
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Text(
-                    text = "Okurken Ekranı Açık Tut",
+                    text = stringResource(R.string.settings_keep_screen_on),
                     style = MaterialTheme.typography.bodyLarge,
                     modifier = Modifier.weight(1f),
                 )
@@ -255,4 +255,12 @@ private fun Section(title: String, content: @Composable () -> Unit) {
         modifier = Modifier.padding(bottom = 8.dp),
     )
     content()
+}
+
+private fun ReadingFontFamily.labelRes(): Int = when (this) {
+    ReadingFontFamily.SERIF -> R.string.font_serif
+    ReadingFontFamily.SANS_SERIF -> R.string.font_sans_serif
+    ReadingFontFamily.MONOSPACE -> R.string.font_monospace
+    ReadingFontFamily.CURSIVE -> R.string.font_cursive
+    ReadingFontFamily.SYSTEM -> R.string.font_system
 }

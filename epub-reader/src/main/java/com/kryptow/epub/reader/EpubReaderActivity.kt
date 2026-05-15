@@ -1,7 +1,10 @@
 package com.kryptow.epub.reader
 
+import android.content.Context
+import android.database.Cursor
 import android.net.Uri
 import android.os.Bundle
+import android.provider.OpenableColumns
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -13,6 +16,7 @@ import androidx.lifecycle.lifecycleScope
 import com.kryptow.epub.reader.bookreader.domain.model.Book
 import com.kryptow.epub.reader.bookreader.domain.repository.BookRepository
 import com.kryptow.epub.reader.bookreader.epub.EpubParser
+import com.kryptow.epub.reader.bookreader.ui.screen.pdf.PdfReaderScreen
 import com.kryptow.epub.reader.bookreader.ui.screen.reader.ReaderScreen
 import com.kryptow.epub.reader.bookreader.ui.screen.settings.SettingsScreen
 import com.kryptow.epub.reader.bookreader.ui.theme.BookReaderTheme
@@ -55,9 +59,12 @@ class EpubReaderActivity : ComponentActivity() {
 
         when {
             bookId != -1L -> showReader(bookId)
-            fileUri != null -> resolveAndOpen(fileUri)
+            fileUri != null -> {
+                if (fileUri.isPdf(this)) showPdfReader(fileUri)
+                else resolveAndOpen(fileUri)
+            }
             else -> {
-                Toast.makeText(this, "Geçersiz kitap", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, getString(R.string.error_invalid_book), Toast.LENGTH_SHORT).show()
                 finish()
             }
         }
@@ -71,7 +78,7 @@ class EpubReaderActivity : ComponentActivity() {
             if (id != null) {
                 showReader(id)
             } else {
-                Toast.makeText(this@EpubReaderActivity, "EPUB açılamadı", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this@EpubReaderActivity, getString(R.string.error_epub_open), Toast.LENGTH_SHORT).show()
                 finish()
             }
         }
@@ -92,8 +99,8 @@ class EpubReaderActivity : ComponentActivity() {
             val epubBook = epubParser.parse(uri)
             val coverPath = epubBook.coverImageBytes?.let { epubParser.saveCoverImage(it, uri) }
             val book = Book(
-                title = epubBook.title.ifBlank { uri.lastPathSegment ?: "Bilinmeyen Kitap" },
-                author = epubBook.author.ifBlank { "Bilinmeyen Yazar" },
+                title = epubBook.title.ifBlank { uri.lastPathSegment ?: getString(R.string.error_unknown_book) },
+                author = epubBook.author.ifBlank { getString(R.string.error_unknown_author) },
                 filePath = uriString,
                 coverPath = coverPath,
                 totalChapters = epubBook.chapters.size,
@@ -104,7 +111,25 @@ class EpubReaderActivity : ComponentActivity() {
         }
     }
 
-    // ─── Compose ekranı göster ────────────────────────────────────────────────
+    // ─── PDF ekranı göster ────────────────────────────────────────────────────
+
+    private fun showPdfReader(uri: Uri) {
+        val fileName = uri.lastPathSegment
+            ?.substringAfterLast('/')
+            ?.removeSuffix(".pdf")
+            ?: getString(R.string.pdf_unknown_document)
+        setContent {
+            BookReaderTheme {
+                PdfReaderScreen(
+                    uri = uri,
+                    fileName = fileName,
+                    onBack = { finish() },
+                )
+            }
+        }
+    }
+
+    // ─── EPUB ekranı göster ───────────────────────────────────────────────────
 
     private fun showReader(bookId: Long) {
         setContent {
@@ -132,4 +157,26 @@ class EpubReaderActivity : ComponentActivity() {
         /** Dosya URI'si ile açmak için — kitap yoksa otomatik kayıt edilir. */
         const val EXTRA_FILE_URI = "epub_reader_file_uri"
     }
+}
+
+// ─── Yardımcı ─────────────────────────────────────────────────────────────────
+
+private fun Uri.isPdf(context: Context): Boolean {
+    // 1) MIME type (content:// için en güvenilir yol)
+    val mime = context.contentResolver.getType(this)?.lowercase()
+    if (mime == "application/pdf") return true
+
+    // 2) Görünen dosya adı (OpenableColumns)
+    val displayName = runCatching {
+        var name: String? = null
+        val cursor: Cursor? = context.contentResolver.query(
+            this, arrayOf(OpenableColumns.DISPLAY_NAME), null, null, null
+        )
+        cursor?.use { if (it.moveToFirst()) name = it.getString(0) }
+        name
+    }.getOrNull()
+    if (displayName?.lowercase()?.endsWith(".pdf") == true) return true
+
+    // 3) URI string fallback (file://)
+    return toString().lowercase().let { it.endsWith(".pdf") || it.contains(".pdf?") }
 }

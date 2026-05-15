@@ -25,9 +25,11 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.kryptow.epub.reader.R
 import com.kryptow.epub.reader.bookreader.domain.model.HighlightColor
 
 /**
@@ -45,7 +47,7 @@ fun HighlightNoteDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Not Ekle") },
+        title = { Text(stringResource(R.string.highlight_note_title)) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
 
@@ -68,7 +70,7 @@ fun HighlightNoteDialog(
                 // Renk seçici
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text(
-                        text = "Vurgu rengi",
+                        text = stringResource(R.string.highlight_add),
                         style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -101,8 +103,8 @@ fun HighlightNoteDialog(
                     value = noteText,
                     onValueChange = { noteText = it },
                     modifier = Modifier.fillMaxWidth(),
-                    label = { Text("Not (isteğe bağlı)") },
-                    placeholder = { Text("Notunuzu yazın...") },
+                    label = { Text(stringResource(R.string.highlight_note_placeholder)) },
+                    placeholder = { Text(stringResource(R.string.highlight_note_placeholder)) },
                     minLines = 2,
                     maxLines = 5,
                 )
@@ -111,10 +113,10 @@ fun HighlightNoteDialog(
         confirmButton = {
             TextButton(onClick = {
                 onConfirm(selectedColor, noteText.trim().takeIf { it.isNotBlank() })
-            }) { Text("Kaydet") }
+            }) { Text(stringResource(R.string.save)) }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) { Text("İptal") }
+            TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) }
         },
     )
 }

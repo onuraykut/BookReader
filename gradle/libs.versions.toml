@@ -23,6 +23,7 @@ material-icons = "1.7.8"
 documentfile = "1.0.1"
 car-app = "1.4.0"
 media = "1.7.0"
+splashscreen = "1.0.1"
 
 [libraries]
 # Mevcut
@@ -80,6 +81,9 @@ car-app-automotive = { group = "androidx.car.app", name = "app-automotive", vers
 
 # Media (MediaBrowserServiceCompat + MediaSession)
 media = { group = "androidx.media", name = "media", version.ref = "media" }
+
+# Splash Screen API (Android 12+ + backport)
+androidx-splashscreen = { group = "androidx.core", name = "core-splashscreen", version.ref = "splashscreen" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

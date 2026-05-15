@@ -9,6 +9,7 @@ import androidx.car.app.model.Row
 import androidx.car.app.model.Template
 import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.LifecycleOwner
+import com.kryptow.epub.reader.R
 import com.kryptow.epub.reader.bookreader.domain.model.Book
 import com.kryptow.epub.reader.bookreader.domain.repository.BookRepository
 import kotlinx.coroutines.CoroutineScope
@@ -49,7 +50,7 @@ class LibraryCarScreen(carContext: CarContext) : Screen(carContext), KoinCompone
 
         if (!loading) {
             if (books.isEmpty()) {
-                listBuilder.setNoItemsMessage("Kitaplığınız boş. Telefon uygulamasından kitap ekleyin.")
+                listBuilder.setNoItemsMessage(carContext.getString(R.string.car_library_empty))
             } else {
                 books.forEach { book ->
                     val progress = (book.readingProgressPercent * 100).toInt()
@@ -59,8 +60,8 @@ class LibraryCarScreen(carContext: CarContext) : Screen(carContext), KoinCompone
                             .addText(book.author)
                             .addText(
                                 when {
-                                    progress > 0 -> "%$progress okundu"
-                                    else -> "${book.totalChapters} bölüm"
+                                    progress > 0 -> carContext.getString(R.string.car_progress_format, progress)
+                                    else -> carContext.getString(R.string.car_chapters_count, book.totalChapters)
                                 }
                             )
                             .setOnClickListener {
@@ -73,7 +74,7 @@ class LibraryCarScreen(carContext: CarContext) : Screen(carContext), KoinCompone
         }
 
         return ListTemplate.Builder()
-            .setTitle("Kitaplık")
+            .setTitle(carContext.getString(R.string.car_library))
             .apply {
                 if (loading) setLoading(true)
                 else setSingleList(listBuilder.build())

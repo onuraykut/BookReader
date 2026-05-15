@@ -2,4 +2,12 @@
 <resources>
 
     <style name="Theme.BookReader" parent="android:Theme.Material.Light.NoActionBar" />
+
+    <!-- Lumen splash screen (Android 12+ API, geriye uyumlu) -->
+    <style name="Theme.Lumen.Splash" parent="Theme.SplashScreen">
+        <item name="windowSplashScreenBackground">@color/lumen_splash_bg</item>
+        <item name="windowSplashScreenAnimatedIcon">@drawable/ic_splash_logo</item>
+        <item name="windowSplashScreenIconBackgroundColor">@color/lumen_splash_bg</item>
+        <item name="postSplashScreenTheme">@style/Theme.BookReader</item>
+    </style>
 </resources>

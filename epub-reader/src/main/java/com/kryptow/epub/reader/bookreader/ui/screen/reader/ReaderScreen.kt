@@ -57,6 +57,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -65,6 +66,7 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import com.kryptow.epub.reader.R
 import com.kryptow.epub.reader.bookreader.domain.model.ScrollMode
 import com.kryptow.epub.reader.bookreader.ui.reader.BookPaginationIndexer
 import com.kryptow.epub.reader.bookreader.ui.reader.DictionarySheet
@@ -199,15 +201,20 @@ fun ReaderScreen(
         !isPaged -> null
         pagination.isIndexing && !pagination.isIndexComplete -> {
             val pct = (pagination.indexProgress * 100f).toInt()
-            "İndeksleniyor… %$pct"
+            stringResource(R.string.reader_indexing_format, pct)
         }
-        currentPageAbs != null && totalPages != null -> "Sayfa $currentPageAbs / $totalPages"
+        currentPageAbs != null && totalPages != null ->
+            stringResource(R.string.reader_page_format, currentPageAbs, totalPages)
         else -> null
     }
 
     val chapterLabel = when {
         pageLabel != null -> pageLabel
-        uiState.totalChapters > 0 -> "Bölüm ${currentChapterIndex + 1} / ${uiState.totalChapters}"
+        uiState.totalChapters > 0 -> stringResource(
+            R.string.reader_chapter_format,
+            currentChapterIndex + 1,
+            uiState.totalChapters,
+        )
         else -> ""
     }
 
@@ -550,7 +557,7 @@ private fun ReaderTopBar(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             IconButton(onClick = onBack) {
-                Icon(Icons.AutoMirrored.Filled.ArrowBack, "Geri", tint = textColor)
+                Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.back), tint = textColor)
             }
             Text(
                 text = title,
@@ -563,30 +570,33 @@ private fun ReaderTopBar(
                     .padding(start = 8.dp),
             )
             IconButton(onClick = onSearch) {
-                Icon(Icons.Default.Search, "Ara", tint = textColor)
+                Icon(Icons.Default.Search, stringResource(R.string.search), tint = textColor)
             }
             IconButton(onClick = onToc) {
-                Icon(Icons.Default.List, "İçindekiler", tint = textColor)
+                Icon(Icons.Default.List, stringResource(R.string.reader_table_of_contents), tint = textColor)
             }
             IconButton(onClick = onNotes) {
-                Icon(Icons.Default.Notes, "Notlar", tint = textColor)
+                Icon(Icons.Default.Notes, stringResource(R.string.reader_notes), tint = textColor)
             }
             IconButton(onClick = onBookmark) {
                 Icon(
                     if (isBookmarked) Icons.Default.Bookmark else Icons.Default.BookmarkBorder,
-                    "Yer imi",
+                    stringResource(
+                        if (isBookmarked) R.string.reader_bookmark_remove
+                        else R.string.reader_bookmark_add
+                    ),
                     tint = textColor,
                 )
             }
             IconButton(onClick = onTts) {
                 Icon(
                     Icons.Default.VolumeUp,
-                    "Sesle Oku",
+                    stringResource(R.string.reader_listen),
                     tint = if (isTtsActive) accentColor else textColor,
                 )
             }
             IconButton(onClick = onSettings) {
-                Icon(Icons.Default.Settings, "Ayarlar", tint = textColor)
+                Icon(Icons.Default.Settings, stringResource(R.string.settings), tint = textColor)
             }
         }
     }
@@ -631,7 +641,7 @@ private fun ReaderBottomBar(
                 ) {
                     Icon(
                         Icons.AutoMirrored.Filled.NavigateBefore,
-                        contentDescription = "Önceki",
+                        contentDescription = stringResource(R.string.reader_previous_chapter),
                         modifier = Modifier.size(28.dp),
                         tint = if (canGoPrev) textColor else textColor.copy(alpha = 0.25f),
                     )
@@ -684,7 +694,7 @@ private fun ReaderBottomBar(
                 ) {
                     Icon(
                         Icons.AutoMirrored.Filled.NavigateNext,
-                        contentDescription = "Sonraki",
+                        contentDescription = stringResource(R.string.reader_next_chapter),
                         modifier = Modifier.size(28.dp),
                         tint = if (canGoNext) textColor else textColor.copy(alpha = 0.25f),
                     )

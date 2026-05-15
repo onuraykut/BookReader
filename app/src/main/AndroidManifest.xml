@@ -20,7 +20,7 @@
         android:label="@string/app_name"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
-        android:theme="@style/Theme.BookReader">
+        android:theme="@style/Theme.Lumen.Splash">
 
         <!-- Android Auto: araç ekranına yansıtma meta-datası -->
         <meta-data
@@ -31,7 +31,7 @@
             android:name=".MainActivity"
             android:exported="true"
             android:label="@string/app_name"
-            android:theme="@style/Theme.BookReader"
+            android:theme="@style/Theme.Lumen.Splash"
             android:windowSoftInputMode="adjustResize">
 
             <!-- Ana başlatıcı -->
@@ -40,23 +40,50 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
 
-            <!-- EPUB dosyası açma desteği -->
+            <!-- ──────────────────────────────────────────────────────────── -->
+            <!-- EPUB & PDF dosyası açma desteği                              -->
+            <!-- ──────────────────────────────────────────────────────────── -->
+
+            <!-- 1) MIME type üzerinden (content://, file://) -->
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="content" />
+                <data android:scheme="file" />
                 <data android:mimeType="application/epub+zip" />
+                <data android:mimeType="application/pdf" />
             </intent-filter>
 
+            <!-- 2) Dosya uzantısı üzerinden (mime type yokken — file manager'lar için) -->
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
-                <data android:scheme="file" android:mimeType="application/epub+zip" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="content" />
+                <data android:scheme="file" />
+                <data android:host="*" />
+                <data android:mimeType="*/*" />
+                <data android:pathPattern=".*\\.epub" />
+                <data android:pathPattern=".*\\..*\\.epub" />
+                <data android:pathPattern=".*\\..*\\..*\\.epub" />
+                <data android:pathPattern=".*\\..*\\..*\\..*\\.epub" />
+                <data android:pathPattern=".*\\.pdf" />
+                <data android:pathPattern=".*\\..*\\.pdf" />
+                <data android:pathPattern=".*\\..*\\..*\\.pdf" />
+                <data android:pathPattern=".*\\..*\\..*\\..*\\.pdf" />
             </intent-filter>
 
+            <!-- 3) Tarayıcıdan / e-posta eklerinden gelen indirilenler -->
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
-                <data android:scheme="content" android:mimeType="application/epub+zip" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="http" />
+                <data android:scheme="https" />
+                <data android:host="*" />
+                <data android:pathPattern=".*\\.epub" />
+                <data android:pathPattern=".*\\.pdf" />
             </intent-filter>
 
         </activity>

@@ -18,6 +18,7 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.viewinterop.AndroidView
+import com.kryptow.epub.reader.R
 import com.kryptow.epub.reader.bookreader.domain.model.Highlight
 import com.kryptow.epub.reader.bookreader.domain.model.ReadingPreferences
 
@@ -133,11 +134,11 @@ fun EpubContentWebView(
                         object : ActionMode.Callback {
                             override fun onCreateActionMode(mode: ActionMode?, menu: Menu?): Boolean {
                                 val result = callback?.onCreateActionMode(mode, menu) ?: true
-                                menu?.add(Menu.NONE, MENU_DEFINITION, Menu.NONE, "Tanım Göster")
+                                menu?.add(Menu.NONE, MENU_DEFINITION, Menu.NONE, ctx.getString(R.string.highlight_definition))
                                     ?.setShowAsAction(MenuItem.SHOW_AS_ACTION_ALWAYS)
-                                menu?.add(Menu.NONE, MENU_HIGHLIGHT, Menu.NONE, "Vurgula")
+                                menu?.add(Menu.NONE, MENU_HIGHLIGHT, Menu.NONE, ctx.getString(R.string.highlight_add))
                                     ?.setShowAsAction(MenuItem.SHOW_AS_ACTION_ALWAYS)
-                                menu?.add(Menu.NONE, MENU_NOTE, Menu.NONE, "Not Ekle")
+                                menu?.add(Menu.NONE, MENU_NOTE, Menu.NONE, ctx.getString(R.string.highlight_note_add))
                                     ?.setShowAsAction(MenuItem.SHOW_AS_ACTION_ALWAYS)
                                 return result
                             }

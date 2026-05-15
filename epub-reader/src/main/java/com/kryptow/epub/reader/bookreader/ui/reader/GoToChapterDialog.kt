@@ -20,7 +20,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextRange
+import com.kryptow.epub.reader.R
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.TextFieldValue
@@ -50,9 +52,8 @@ fun GoToChapterDialog(
     val isValid = parsed != null && parsed in 1..totalChapters
     val errorMessage = when {
         textValue.text.isBlank() -> null
-        parsed == null -> "Geçerli bir sayı girin"
-        parsed < 1 -> "En az 1 olmalı"
-        parsed > totalChapters -> "En fazla $totalChapters olabilir"
+        parsed == null || parsed < 1 || parsed > totalChapters ->
+            "1 — $totalChapters"
         else -> null
     }
 
@@ -60,14 +61,9 @@ fun GoToChapterDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Bölüme Git") },
+        title = { Text(stringResource(R.string.dialog_go_to_chapter)) },
         text = {
             Column {
-                Text(
-                    text = "1 ile $totalChapters arasında bir bölüm numarası girin",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
                 Spacer(Modifier.height(12.dp))
                 OutlinedTextField(
                     value = textValue,
@@ -75,8 +71,8 @@ fun GoToChapterDialog(
                     modifier = Modifier
                         .fillMaxWidth()
                         .focusRequester(focusRequester),
-                    label = { Text("Bölüm numarası") },
-                    placeholder = { Text("örn. 5") },
+                    label = { Text(stringResource(R.string.dialog_chapter_label)) },
+                    placeholder = { Text("1 — $totalChapters") },
                     isError = errorMessage != null,
                     supportingText = errorMessage?.let {
                         { Text(it, color = MaterialTheme.colorScheme.error) }
@@ -97,11 +93,11 @@ fun GoToChapterDialog(
                 onClick = { if (isValid) onConfirm(parsed!! - 1) },
                 enabled = isValid,
             ) {
-                Text("Git")
+                Text(stringResource(R.string.dialog_go))
             }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) { Text("İptal") }
+            TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) }
         },
     )
 }

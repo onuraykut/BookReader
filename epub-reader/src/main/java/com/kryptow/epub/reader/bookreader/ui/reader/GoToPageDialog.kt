@@ -16,8 +16,10 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
+import com.kryptow.epub.reader.R
 
 /**
  * Düz sayfa numarasına gitme dialogu (HORIZONTAL_PAGE modu için).
@@ -42,7 +44,7 @@ fun GoToPageDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Sayfaya Git") },
+        title = { Text(stringResource(R.string.dialog_go_to_page)) },
         text = {
             OutlinedTextField(
                 value = input,
@@ -50,7 +52,7 @@ fun GoToPageDialog(
                 modifier = Modifier
                     .fillMaxWidth()
                     .focusRequester(focusRequester),
-                label = { Text("Sayfa numarası (1 – $totalPages)") },
+                label = { Text("${stringResource(R.string.dialog_page_label)} (1 – $totalPages)") },
                 placeholder = { Text("$currentPage") },
                 keyboardOptions = KeyboardOptions(
                     keyboardType = KeyboardType.Number,
@@ -60,15 +62,15 @@ fun GoToPageDialog(
                 singleLine = true,
                 isError = input.isNotBlank() && !isValid,
                 supportingText = if (input.isNotBlank() && !isValid) {
-                    { Text("1 ile $totalPages arasında bir sayı girin") }
+                    { Text("1 — $totalPages") }
                 } else null,
             )
         },
         confirmButton = {
-            TextButton(onClick = ::confirm, enabled = isValid) { Text("Git") }
+            TextButton(onClick = ::confirm, enabled = isValid) { Text(stringResource(R.string.dialog_go)) }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) { Text("İptal") }
+            TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) }
         },
     )
 

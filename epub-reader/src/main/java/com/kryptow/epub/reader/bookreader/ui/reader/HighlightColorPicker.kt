@@ -112,7 +112,7 @@ private fun ColorCircle(
         contentAlignment = Alignment.Center,
     ) {
         Text(
-            text = color.labelTr[0].toString(),
+            text = androidx.compose.ui.res.stringResource(color.labelRes).firstOrNull()?.toString() ?: "",
             style = MaterialTheme.typography.labelSmall,
             color = Color.Black.copy(alpha = 0.6f),
         )

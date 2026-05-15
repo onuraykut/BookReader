@@ -30,6 +30,7 @@ import com.kryptow.epub.reader.bookreader.ui.reader.TtsManager
 import com.kryptow.epub.reader.bookreader.ui.screen.library.LibraryViewModel
 import com.kryptow.epub.reader.bookreader.ui.screen.notes.NotesViewModel
 import com.kryptow.epub.reader.bookreader.ui.screen.reader.ReaderViewModel
+import com.kryptow.epub.reader.bookreader.ui.screen.pdf.PdfReaderViewModel
 import com.kryptow.epub.reader.bookreader.ui.screen.settings.SettingsViewModel
 import org.koin.android.ext.koin.androidContext
 import org.koin.core.module.dsl.viewModel
@@ -83,8 +84,9 @@ val useCaseModule = module {
 }
 
 val viewModelModule = module {
-    viewModel { LibraryViewModel(get(), get(), get(), get(), get(), get(), get(), get()) }
+    viewModel { LibraryViewModel(get(), get(), get(), get(), get(), get(), get(), get(), androidContext()) }
     viewModel { ReaderViewModel(get(), get(), get(), get(), get(), get(), get(), get(), get()) }
     viewModel { SettingsViewModel(get()) }
-    viewModel { (bookId: Long) -> NotesViewModel(bookId, get(), get(), get()) }
+    viewModel { (bookId: Long) -> NotesViewModel(bookId, get(), get(), get(), androidContext()) }
+    viewModel { PdfReaderViewModel(androidContext()) }
 }
