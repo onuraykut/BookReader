@@ -230,7 +230,9 @@ class EpubParser(private val context: Context) {
         val result = mutableListOf<String>()
         for (part in path.split("/")) {
             when {
-                part == ".." && result.isNotEmpty() -> result.removeLast()
+                // NOT: removeLast() Kotlin extension'ı Android 14+ Java işleviyle çakışıyor,
+                // eski Android sürümlerinde crash. removeAt(lastIndex) güvenli alternatif.
+                part == ".." && result.isNotEmpty() -> result.removeAt(result.lastIndex)
                 part != "." && part.isNotEmpty() -> result.add(part)
             }
         }

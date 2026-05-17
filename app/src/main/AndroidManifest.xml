@@ -22,10 +22,21 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.Lumen.Splash">
 
-        <!-- Android Auto: araç ekranına yansıtma meta-datası -->
+        <!-- ─── Android Auto desteği — şimdilik devre dışı ────────────────── -->
+        <!-- Android Auto yayını yapmaya hazır olduğunda:                      -->
+        <!--   1) Aşağıdaki <meta-data>'yı yorum satırından çıkar              -->
+        <!--   2) Aşağıdaki <service tools:node="remove">'u sil                -->
+        <!-- Kod ve XML kaynakları yerinde — sadece manifest sinyalleri kapalı -->
+        <!--
         <meta-data
             android:name="com.google.android.gms.car.application"
             android:resource="@xml/automotive_app_desc" />
+        -->
+
+        <!-- Library'den gelen CarAppService'i manifest merger ile gizle      -->
+        <service
+            android:name="com.kryptow.epub.reader.bookreader.car.BookReaderCarAppService"
+            tools:node="remove" />
 
         <activity
             android:name=".MainActivity"

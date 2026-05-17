@@ -1,0 +1,175 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- ─── Genel / Common ───────────────────────────────────────────────── -->
+    <string name="ok">Tamam</string>
+    <string name="cancel">İptal</string>
+    <string name="save">Kaydet</string>
+    <string name="delete">Sil</string>
+    <string name="close">Kapat</string>
+    <string name="back">Geri</string>
+    <string name="loading">Yükleniyor…</string>
+    <string name="search">Ara</string>
+    <string name="settings">Ayarlar</string>
+    <string name="error">Hata</string>
+    <string name="retry">Tekrar dene</string>
+
+    <!-- ─── Reader (EPUB) ────────────────────────────────────────────────── -->
+    <string name="reader_chapter_format">Bölüm %1$d / %2$d</string>
+    <string name="reader_page_format">Sayfa %1$d / %2$d</string>
+    <string name="reader_indexing_format">İndeksleniyor… %%%1$d</string>
+    <string name="reader_previous_chapter">Önceki bölüm</string>
+    <string name="reader_next_chapter">Sonraki bölüm</string>
+    <string name="reader_bookmark_add">Yer İmi Ekle</string>
+    <string name="reader_bookmark_remove">Yer İmini Kaldır</string>
+    <string name="reader_table_of_contents">İçindekiler</string>
+    <string name="reader_notes">Notlar</string>
+    <string name="reader_listen">Sesli Oku</string>
+
+    <!-- ─── Reader Dialogs / Sheets ──────────────────────────────────────── -->
+    <string name="dialog_go_to_chapter">Bölüme Git</string>
+    <string name="dialog_go_to_page">Sayfaya Git</string>
+    <string name="dialog_chapter_label">Bölüm numarası</string>
+    <string name="dialog_page_label">Sayfa numarası</string>
+    <string name="dialog_go">Git</string>
+
+    <string name="toc_title">İçindekiler</string>
+    <string name="toc_empty">İçindekiler tablosu bulunamadı</string>
+
+    <string name="search_in_book">Kitapta Ara</string>
+    <string name="search_placeholder">Aranacak metin…</string>
+    <string name="search_no_results">Sonuç bulunamadı</string>
+    <string name="search_result_format">%1$d / %2$d</string>
+
+    <string name="dictionary_definition">Tanım</string>
+    <string name="dictionary_translation">Çeviri</string>
+    <string name="dictionary_loading">Aranıyor…</string>
+    <string name="dictionary_not_found">Tanım bulunamadı</string>
+    <string name="dictionary_translation_failed">Çeviri başarısız</string>
+    <string name="dictionary_no_internet">İnternet bağlantısı yok</string>
+
+    <string name="highlight_add">Vurgula</string>
+    <string name="highlight_note_add">Not Ekle</string>
+    <string name="highlight_definition">Tanım Göster</string>
+    <string name="highlight_note_title">Not Ekle</string>
+    <string name="highlight_note_placeholder">Not (isteğe bağlı)</string>
+    <string name="highlight_selected_text">Seçilen metin</string>
+
+    <!-- ─── TTS ──────────────────────────────────────────────────────────── -->
+    <string name="tts_play">Oynat</string>
+    <string name="tts_pause">Duraklat</string>
+    <string name="tts_stop">Durdur</string>
+    <string name="tts_previous">Önceki cümle</string>
+    <string name="tts_next">Sonraki cümle</string>
+    <string name="tts_speed">Hız</string>
+    <string name="tts_language">Dil</string>
+    <string name="tts_sentence_format">%1$d / %2$d</string>
+
+    <!-- ─── PDF Reader ───────────────────────────────────────────────────── -->
+    <string name="pdf_document">PDF Belgesi</string>
+    <string name="pdf_page_format">Sayfa %1$d</string>
+    <string name="pdf_open_failed">PDF açılamadı</string>
+    <string name="pdf_unknown_document">Belge</string>
+
+    <!-- ─── Settings ─────────────────────────────────────────────────────── -->
+    <string name="settings_title">Okuma Ayarları</string>
+    <string name="settings_theme_mode">Tema Modu</string>
+    <string name="settings_theme_day">Gündüz</string>
+    <string name="settings_theme_night">Gece</string>
+    <string name="settings_theme_auto">Otomatik</string>
+    <string name="settings_night_start">Gece Modu Başlangıcı: %1$s</string>
+    <string name="settings_night_end">Gece Modu Bitişi: %1$s</string>
+    <string name="settings_day_theme">Gündüz Teması</string>
+    <string name="settings_night_theme">Gece Teması</string>
+    <string name="theme_day_white">Beyaz</string>
+    <string name="theme_day_cream">Krem</string>
+    <string name="theme_day_light_blue">Açık Mavi</string>
+    <string name="theme_night_black">Tam Siyah</string>
+    <string name="theme_night_dark_gray">Koyu Gri</string>
+    <string name="theme_night_sepia">Sepya</string>
+    <string name="settings_font_family">Yazı Tipi</string>
+    <string name="font_serif">Serif</string>
+    <string name="font_sans_serif">Sans-serif</string>
+    <string name="font_monospace">Monospace</string>
+    <string name="font_cursive">Cursive</string>
+    <string name="font_system">Sistem</string>
+    <string name="settings_font_size">Yazı Boyutu: %1$dpt</string>
+    <string name="settings_line_height">Satır Aralığı: %1$s</string>
+    <string name="settings_margin">Kenar Boşluğu: %1$ddp</string>
+    <string name="settings_scroll_mode">Kaydırma Modu</string>
+    <string name="scroll_mode_vertical">Dikey Kaydırma</string>
+    <string name="scroll_mode_paginated">Sayfa Çevirme</string>
+    <string name="settings_keep_screen_on">Okurken Ekranı Açık Tut</string>
+
+    <!-- ─── Highlight Colors ─────────────────────────────────────────────── -->
+    <string name="color_yellow">Sarı</string>
+    <string name="color_green">Yeşil</string>
+    <string name="color_blue">Mavi</string>
+    <string name="color_red">Kırmızı</string>
+    <string name="color_orange">Turuncu</string>
+
+    <!-- ─── Library ──────────────────────────────────────────────────────── -->
+    <string name="library_title">Kütüphane</string>
+    <string name="library_search_placeholder">Kitap ara…</string>
+    <string name="library_tab_all">Tümü</string>
+    <string name="library_tab_recent">Son Okunan</string>
+    <string name="library_tab_favorites">Favoriler</string>
+    <string name="library_empty_all">Henüz kitap eklenmemiş</string>
+    <string name="library_empty_recent">Henüz okuma yapılmamış</string>
+    <string name="library_empty_favorites">Favori kitap yok</string>
+    <string name="library_add_book">Kitap Ekle</string>
+    <string name="library_scan_folder">Klasör Tara</string>
+    <string name="library_change_view">Görünüm değiştir</string>
+    <string name="library_favorite">Favori</string>
+    <string name="library_delete_confirm">Bu kitabı silmek istediğine emin misin?</string>
+
+    <!-- ─── Import / Errors ──────────────────────────────────────────────── -->
+    <string name="import_failed">Dosya yüklenemedi: %1$s</string>
+    <string name="import_folder_failed">Klasör taranamadı: %1$s</string>
+    <string name="import_no_files_in_folder">Seçilen klasörde EPUB/PDF bulunamadı</string>
+    <string name="import_all_already_added">Tüm kitaplar zaten kütüphanede</string>
+    <string name="import_added_count">%1$d dosya eklendi</string>
+    <string name="import_partial_success">%1$d eklendi, %2$d başarısız</string>
+    <string name="error_invalid_book">Geçersiz kitap</string>
+    <string name="error_epub_open">EPUB açılamadı</string>
+    <string name="error_unknown_book">Bilinmeyen Kitap</string>
+    <string name="error_unknown_author">Bilinmeyen Yazar</string>
+    <string name="error_unknown_title">Bilinmeyen Başlık</string>
+
+    <!-- ─── Notes ────────────────────────────────────────────────────────── -->
+    <string name="notes_title">Notlar &amp; Vurgular</string>
+    <string name="notes_empty">Henüz not veya vurgu yok</string>
+    <string name="notes_delete">Notu Sil</string>
+    <string name="notes_edit">Notu Düzenle</string>
+
+    <!-- ─── Reading time / Stats ─────────────────────────────────────────── -->
+    <string name="reading_time_format">%1$d dk</string>
+    <string name="chapter_format">Bölüm %1$d</string>
+
+    <!-- ─── Onboarding ────────────────────────────────────────────────────── -->
+    <string name="onboarding_skip">Atla</string>
+    <string name="onboarding_next">İleri</string>
+    <string name="onboarding_get_started">Başla</string>
+    <string name="onboarding_page1_title">Lumen\'e Hoş Geldiniz</string>
+    <string name="onboarding_page1_desc">Tüm e-kitaplarınızı tek yerde okuyun. EPUB ve PDF desteğiyle zengin okuma deneyimi yaşayın.</string>
+    <string name="onboarding_page2_title">EPUB Okuma</string>
+    <string name="onboarding_page2_desc">Yazı boyutunu, fontunu ve temasını özelleştirin. Vurgu ve not alma özellikleriyle akıllı okuma yapın.</string>
+    <string name="onboarding_page3_title">PDF Desteği</string>
+    <string name="onboarding_page3_desc">PDF belgelerini açın, pinch-zoom ile yakınlaştırın ve parmak hareketiyle sayfa çevirin.</string>
+    <string name="onboarding_page4_title">Sesli Okuma</string>
+    <string name="onboarding_page4_desc">Metin-konuşma özelliğiyle kitaplarınızı dinleyin. Android Auto desteğiyle araçta bile kullanabilirsiniz.</string>
+
+    <!-- ─── Empty state ────────────────────────────────────────────────────── -->
+    <string name="library_empty_all_title">Kütüphaneniz boş</string>
+    <string name="library_empty_all_desc">İlk kitabınızı ekleyerek okumaya başlayın. EPUB ve PDF formatları desteklenmektedir.</string>
+    <string name="library_empty_recent_title">Henüz okuma yapılmadı</string>
+    <string name="library_empty_recent_desc">Bir kitap açtığınızda burada görünecek.</string>
+    <string name="library_empty_favorites_title">Favori kitabınız yok</string>
+    <string name="library_empty_favorites_desc">Bir kitabı favorilere eklemek için kalp simgesine dokunun.</string>
+
+    <!-- ─── Car / Auto ───────────────────────────────────────────────────── -->
+    <string name="car_library">Kitaplık</string>
+    <string name="car_library_empty">Kitaplığınız boş. Telefon uygulamasından kitap ekleyin.</string>
+    <string name="car_chapters_count">%1$d bölüm</string>
+    <string name="car_progress_format">%%%1$d okundu</string>
+    <string name="car_now_playing">Şimdi Oynatılıyor</string>
+</resources>

@@ -6,7 +6,7 @@ import com.kryptow.epub.reader.EpubReader
 class BookReaderApplication : Application() {
     override fun onCreate() {
         super.onCreate()
-        // Tüm Koin modülleri (data, domain, ui) EpubReader kütüphanesi tarafından yönetilir.
+        // Tüm Koin modülleri (data, domain, ui) + PDFBox EpubReader kütüphanesi tarafından yönetilir.
         EpubReader.init(this)
     }
 }

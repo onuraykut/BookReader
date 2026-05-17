@@ -24,6 +24,7 @@ documentfile = "1.0.1"
 car-app = "1.4.0"
 media = "1.7.0"
 splashscreen = "1.0.1"
+pdfbox-android = "2.0.27.0"
 
 [libraries]
 # Mevcut
@@ -84,6 +85,9 @@ media = { group = "androidx.media", name = "media", version.ref = "media" }
 
 # Splash Screen API (Android 12+ + backport)
 androidx-splashscreen = { group = "androidx.core", name = "core-splashscreen", version.ref = "splashscreen" }
+
+# PdfBox for Android — PDF text extraction (search)
+pdfbox-android = { group = "com.tom-roush", name = "pdfbox-android", version.ref = "pdfbox-android" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

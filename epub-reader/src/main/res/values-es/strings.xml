@@ -1,0 +1,175 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- ─── General / Común ──────────────────────────────────────────────── -->
+    <string name="ok">Aceptar</string>
+    <string name="cancel">Cancelar</string>
+    <string name="save">Guardar</string>
+    <string name="delete">Eliminar</string>
+    <string name="close">Cerrar</string>
+    <string name="back">Atrás</string>
+    <string name="loading">Cargando…</string>
+    <string name="search">Buscar</string>
+    <string name="settings">Ajustes</string>
+    <string name="error">Error</string>
+    <string name="retry">Reintentar</string>
+
+    <!-- ─── Lector (EPUB) ────────────────────────────────────────────────── -->
+    <string name="reader_chapter_format">Capítulo %1$d / %2$d</string>
+    <string name="reader_page_format">Página %1$d / %2$d</string>
+    <string name="reader_indexing_format">Indexando… %1$d%%</string>
+    <string name="reader_previous_chapter">Capítulo anterior</string>
+    <string name="reader_next_chapter">Capítulo siguiente</string>
+    <string name="reader_bookmark_add">Añadir marcador</string>
+    <string name="reader_bookmark_remove">Quitar marcador</string>
+    <string name="reader_table_of_contents">Índice</string>
+    <string name="reader_notes">Notas</string>
+    <string name="reader_listen">Leer en voz alta</string>
+
+    <!-- ─── Diálogos / Paneles ───────────────────────────────────────────── -->
+    <string name="dialog_go_to_chapter">Ir al capítulo</string>
+    <string name="dialog_go_to_page">Ir a la página</string>
+    <string name="dialog_chapter_label">Número de capítulo</string>
+    <string name="dialog_page_label">Número de página</string>
+    <string name="dialog_go">Ir</string>
+
+    <string name="toc_title">Índice</string>
+    <string name="toc_empty">No se encontró tabla de contenidos</string>
+
+    <string name="search_in_book">Buscar en el libro</string>
+    <string name="search_placeholder">Texto a buscar…</string>
+    <string name="search_no_results">No se encontraron resultados</string>
+    <string name="search_result_format">%1$d / %2$d</string>
+
+    <string name="dictionary_definition">Definición</string>
+    <string name="dictionary_translation">Traducción</string>
+    <string name="dictionary_loading">Buscando…</string>
+    <string name="dictionary_not_found">Definición no encontrada</string>
+    <string name="dictionary_translation_failed">Falló la traducción</string>
+    <string name="dictionary_no_internet">Sin conexión a Internet</string>
+
+    <string name="highlight_add">Resaltar</string>
+    <string name="highlight_note_add">Añadir nota</string>
+    <string name="highlight_definition">Mostrar definición</string>
+    <string name="highlight_note_title">Añadir nota</string>
+    <string name="highlight_note_placeholder">Nota (opcional)</string>
+    <string name="highlight_selected_text">Texto seleccionado</string>
+
+    <!-- ─── TTS ──────────────────────────────────────────────────────────── -->
+    <string name="tts_play">Reproducir</string>
+    <string name="tts_pause">Pausar</string>
+    <string name="tts_stop">Detener</string>
+    <string name="tts_previous">Frase anterior</string>
+    <string name="tts_next">Frase siguiente</string>
+    <string name="tts_speed">Velocidad</string>
+    <string name="tts_language">Idioma</string>
+    <string name="tts_sentence_format">%1$d / %2$d</string>
+
+    <!-- ─── Lector PDF ───────────────────────────────────────────────────── -->
+    <string name="pdf_document">Documento PDF</string>
+    <string name="pdf_page_format">Página %1$d</string>
+    <string name="pdf_open_failed">No se pudo abrir el PDF</string>
+    <string name="pdf_unknown_document">Documento</string>
+
+    <!-- ─── Ajustes ──────────────────────────────────────────────────────── -->
+    <string name="settings_title">Ajustes de lectura</string>
+    <string name="settings_theme_mode">Modo de tema</string>
+    <string name="settings_theme_day">Día</string>
+    <string name="settings_theme_night">Noche</string>
+    <string name="settings_theme_auto">Automático</string>
+    <string name="settings_night_start">Inicio modo noche: %1$s</string>
+    <string name="settings_night_end">Fin modo noche: %1$s</string>
+    <string name="settings_day_theme">Tema diurno</string>
+    <string name="settings_night_theme">Tema nocturno</string>
+    <string name="theme_day_white">Blanco</string>
+    <string name="theme_day_cream">Crema</string>
+    <string name="theme_day_light_blue">Azul claro</string>
+    <string name="theme_night_black">Negro puro</string>
+    <string name="theme_night_dark_gray">Gris oscuro</string>
+    <string name="theme_night_sepia">Sepia</string>
+    <string name="settings_font_family">Tipografía</string>
+    <string name="font_serif">Serif</string>
+    <string name="font_sans_serif">Sans-serif</string>
+    <string name="font_monospace">Monospace</string>
+    <string name="font_cursive">Cursiva</string>
+    <string name="font_system">Sistema</string>
+    <string name="settings_font_size">Tamaño de fuente: %1$dpt</string>
+    <string name="settings_line_height">Interlineado: %1$s</string>
+    <string name="settings_margin">Margen: %1$ddp</string>
+    <string name="settings_scroll_mode">Modo de desplazamiento</string>
+    <string name="scroll_mode_vertical">Desplazamiento vertical</string>
+    <string name="scroll_mode_paginated">Paso de página</string>
+    <string name="settings_keep_screen_on">Mantener pantalla encendida al leer</string>
+
+    <!-- ─── Colores de resaltado ─────────────────────────────────────────── -->
+    <string name="color_yellow">Amarillo</string>
+    <string name="color_green">Verde</string>
+    <string name="color_blue">Azul</string>
+    <string name="color_red">Rojo</string>
+    <string name="color_orange">Naranja</string>
+
+    <!-- ─── Biblioteca ───────────────────────────────────────────────────── -->
+    <string name="library_title">Biblioteca</string>
+    <string name="library_search_placeholder">Buscar libros…</string>
+    <string name="library_tab_all">Todos</string>
+    <string name="library_tab_recent">Recientes</string>
+    <string name="library_tab_favorites">Favoritos</string>
+    <string name="library_empty_all">No hay libros añadidos</string>
+    <string name="library_empty_recent">Aún no has leído nada</string>
+    <string name="library_empty_favorites">Sin libros favoritos</string>
+    <string name="library_add_book">Añadir libro</string>
+    <string name="library_scan_folder">Escanear carpeta</string>
+    <string name="library_change_view">Cambiar vista</string>
+    <string name="library_favorite">Favorito</string>
+    <string name="library_delete_confirm">¿Seguro que quieres eliminar este libro?</string>
+
+    <!-- ─── Importar / Errores ───────────────────────────────────────────── -->
+    <string name="import_failed">No se pudo cargar el archivo: %1$s</string>
+    <string name="import_folder_failed">No se pudo escanear la carpeta: %1$s</string>
+    <string name="import_no_files_in_folder">No se encontró EPUB/PDF en la carpeta</string>
+    <string name="import_all_already_added">Todos los libros ya están en tu biblioteca</string>
+    <string name="import_added_count">%1$d archivos añadidos</string>
+    <string name="import_partial_success">%1$d añadidos, %2$d fallidos</string>
+    <string name="error_invalid_book">Libro inválido</string>
+    <string name="error_epub_open">No se pudo abrir el EPUB</string>
+    <string name="error_unknown_book">Libro desconocido</string>
+    <string name="error_unknown_author">Autor desconocido</string>
+    <string name="error_unknown_title">Título desconocido</string>
+
+    <!-- ─── Notas ────────────────────────────────────────────────────────── -->
+    <string name="notes_title">Notas y resaltados</string>
+    <string name="notes_empty">Aún no hay notas ni resaltados</string>
+    <string name="notes_delete">Eliminar nota</string>
+    <string name="notes_edit">Editar nota</string>
+
+    <!-- ─── Tiempo de lectura ────────────────────────────────────────────── -->
+    <string name="reading_time_format">%1$d min</string>
+    <string name="chapter_format">Capítulo %1$d</string>
+
+    <!-- ─── Incorporación ────────────────────────────────────────────────── -->
+    <string name="onboarding_skip">Omitir</string>
+    <string name="onboarding_next">Siguiente</string>
+    <string name="onboarding_get_started">Empezar</string>
+    <string name="onboarding_page1_title">Bienvenido a Lumen</string>
+    <string name="onboarding_page1_desc">Lee todos tus libros en un solo lugar. Disfruta de una rica experiencia de lectura con soporte EPUB y PDF.</string>
+    <string name="onboarding_page2_title">Lectura EPUB</string>
+    <string name="onboarding_page2_desc">Personaliza el tamaño de fuente, la familia tipográfica y el tema. Resalta párrafos y toma notas mientras lees.</string>
+    <string name="onboarding_page3_title">Soporte PDF</string>
+    <string name="onboarding_page3_desc">Abre documentos PDF, amplía con gestos de pellizco y desliza para pasar páginas.</string>
+    <string name="onboarding_page4_title">Leer en voz alta</string>
+    <string name="onboarding_page4_desc">Escucha tus libros con texto a voz. También funciona con Android Auto mientras conduces.</string>
+
+    <!-- ─── Estado vacío ──────────────────────────────────────────────────── -->
+    <string name="library_empty_all_title">Tu biblioteca está vacía</string>
+    <string name="library_empty_all_desc">Añade tu primer libro para empezar a leer. Se admiten los formatos EPUB y PDF.</string>
+    <string name="library_empty_recent_title">Aún no has leído nada</string>
+    <string name="library_empty_recent_desc">Los libros que abras aparecerán aquí.</string>
+    <string name="library_empty_favorites_title">Sin libros favoritos</string>
+    <string name="library_empty_favorites_desc">Toca el ícono de corazón en cualquier libro para añadirlo a favoritos.</string>
+
+    <!-- ─── Coche / Auto ─────────────────────────────────────────────────── -->
+    <string name="car_library">Biblioteca</string>
+    <string name="car_library_empty">Tu biblioteca está vacía. Añade libros desde la app del teléfono.</string>
+    <string name="car_chapters_count">%1$d capítulos</string>
+    <string name="car_progress_format">%1$d%% leído</string>
+    <string name="car_now_playing">Reproduciendo ahora</string>
+</resources>

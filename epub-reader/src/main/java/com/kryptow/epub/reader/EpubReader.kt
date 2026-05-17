@@ -79,6 +79,9 @@ object EpubReader {
         if (initialized) return
         initialized = true
 
+        // PDFBox kaynak yükleyici — PDF metin çıkarma (arama) için gerekli
+        com.tom_roush.pdfbox.android.PDFBoxResourceLoader.init(application.applicationContext)
+
         // Koin zaten başlatılmışsa modülleri yükle; yoksa yeni bir context başlat.
         val existingKoin = GlobalContext.getOrNull()
         if (existingKoin != null) {

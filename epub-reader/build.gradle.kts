@@ -90,6 +90,9 @@ dependencies {
 
     // Media (MediaBrowserServiceCompat, MediaSession)
     implementation(libs.media)
+
+    // PdfBox-Android — PDF metin çıkarma (arama için)
+    implementation(libs.pdfbox.android)
 }
 
 afterEvaluate {
