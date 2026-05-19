@@ -90,6 +90,12 @@ fun ReaderScreen(
     onBack: () -> Unit,
     onSettingsClick: () -> Unit,
     onNotesClick: () -> Unit = {},
+    /** Opsiyonel başlangıç bölümü (>0 → uygulanır, saved progress yoksa). */
+    initialChapter: Int = 0,
+    /** Opsiyonel başlangıç offset'i — dikey: piksel, sayfa modu: sayfa indeksi. */
+    initialScrollOffset: Int = 0,
+    /** Eski okuyucudan miras kalan tek-int sayfa numarası (>0 → migration). */
+    legacyPageNumber: Int = -1,
     viewModel: ReaderViewModel = koinViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -138,7 +144,14 @@ fun ReaderScreen(
     // "Not Ekle" action için bekleme durumu
     var pendingNoteText by remember { mutableStateOf<String?>(null) }
 
-    LaunchedEffect(bookId) { viewModel.loadBook(bookId) }
+    LaunchedEffect(bookId) {
+        viewModel.loadBook(
+            bookId = bookId,
+            initialChapter = initialChapter,
+            initialScrollOffset = initialScrollOffset,
+            legacyPageNumber = legacyPageNumber,
+        )
+    }
 
     // Ekran açık tut
     DisposableEffect(preferences.keepScreenOn) {

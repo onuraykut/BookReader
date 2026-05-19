@@ -93,6 +93,9 @@ dependencies {
 
     // PdfBox-Android — PDF metin çıkarma (arama için)
     implementation(libs.pdfbox.android)
+
+    // Unit tests
+    testImplementation(libs.junit)
 }
 
 afterEvaluate {
@@ -104,7 +107,7 @@ afterEvaluate {
                 artifactId = "epub-reader"
                 // JitPack git tag'ini -PVERSION_NAME ile geçirir;
                 // lokal test için fallback "1.0.0" kullanılır.
-                version = findProperty("VERSION_NAME")?.toString() ?: "1.0.0"
+                version = findProperty("VERSION_NAME")?.toString() ?: "1.1.0"
             }
         }
     }

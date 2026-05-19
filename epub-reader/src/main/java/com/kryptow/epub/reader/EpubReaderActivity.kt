@@ -49,6 +49,12 @@ class EpubReaderActivity : ComponentActivity() {
     // Basit iç navigasyon: false = Reader, true = Settings
     private var showSettings by mutableStateOf(false)
 
+    // Yeni okuyucu / migration için Intent extras'tan okunan başlangıç durumu.
+    // showReader() içine forward edilir, oradan ReaderScreen → loadBook'a iner.
+    private var initialChapter: Int = 0
+    private var initialScrollOffset: Int = 0
+    private var legacyPageNumber: Int = -1
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
@@ -56,6 +62,11 @@ class EpubReaderActivity : ComponentActivity() {
         val bookId = intent.getLongExtra(EXTRA_BOOK_ID, -1L)
         val fileUri = intent.getParcelableExtra<Uri>(EXTRA_FILE_URI)
             ?: intent.data  // ACTION_VIEW ile gelen URI de desteklenir
+
+        // Opsiyonel başlangıç pozisyonu (yoksa default'ları korur)
+        initialChapter = intent.getIntExtra(EXTRA_INITIAL_CHAPTER, 0)
+        initialScrollOffset = intent.getIntExtra(EXTRA_INITIAL_SCROLL_OFFSET, 0)
+        legacyPageNumber = intent.getIntExtra(EXTRA_LEGACY_PAGE_NUMBER, -1)
 
         when {
             bookId != -1L -> showReader(bookId)
@@ -144,6 +155,9 @@ class EpubReaderActivity : ComponentActivity() {
                         onBack = { finish() },
                         onSettingsClick = { showSettings = true },
                         onNotesClick = {},
+                        initialChapter = initialChapter,
+                        initialScrollOffset = initialScrollOffset,
+                        legacyPageNumber = legacyPageNumber,
                     )
                 }
             }
@@ -156,6 +170,18 @@ class EpubReaderActivity : ComponentActivity() {
 
         /** Dosya URI'si ile açmak için — kitap yoksa otomatik kayıt edilir. */
         const val EXTRA_FILE_URI = "epub_reader_file_uri"
+
+        /** Opsiyonel başlangıç bölümü (>0 → kullanılır). */
+        const val EXTRA_INITIAL_CHAPTER = "epub_reader_initial_chapter"
+
+        /** Opsiyonel başlangıç scroll offset'i (dikey: piksel, sayfa modu: sayfa indeksi). */
+        const val EXTRA_INITIAL_SCROLL_OFFSET = "epub_reader_initial_scroll_offset"
+
+        /**
+         * Eski okuyucudan miras kalan tek-int sayfa numarası (>0 → migration).
+         * Sadece kullanıcının yeni okuyucuda kaydedilmiş pozisyonu yoksa uygulanır.
+         */
+        const val EXTRA_LEGACY_PAGE_NUMBER = "epub_reader_legacy_page_number"
     }
 }
 

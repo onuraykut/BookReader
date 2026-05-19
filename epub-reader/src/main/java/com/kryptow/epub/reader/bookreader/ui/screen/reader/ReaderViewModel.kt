@@ -194,7 +194,26 @@ class ReaderViewModel(
         }
     }
 
-    fun loadBook(bookId: Long) {
+    /**
+     * Kitabı yükler ve başlangıç pozisyonunu belirler.
+     *
+     * Pozisyon önceliği [resolveInitialPosition] içinde:
+     *  1) Kullanıcının yeni okuyucuda kaydettiği pozisyon (BookEntity)
+     *  2) [legacyPageNumber] varsa — eski okuyucudan migration
+     *  3) Caller'ın verdiği [initialChapter] / [initialScrollOffset]
+     *  4) (0, 0)
+     *
+     * @param bookId               DB'deki kitap kimliği
+     * @param initialChapter       Opsiyonel: başlangıç bölüm önerisi (>0 → kullanılır)
+     * @param initialScrollOffset  Opsiyonel: başlangıç offset önerisi
+     * @param legacyPageNumber     Eski okuyucudan miras kalan sayfa numarası (>0 → migration)
+     */
+    fun loadBook(
+        bookId: Long,
+        initialChapter: Int = 0,
+        initialScrollOffset: Int = 0,
+        legacyPageNumber: Int = -1,
+    ) {
         if (this.bookId == bookId) return
         this.bookId = bookId
 
@@ -204,24 +223,31 @@ class ReaderViewModel(
                 val domainBook = bookRepository.getBookById(bookId)
                     ?: error("Kitap bulunamadı: $bookId")
                 val epubBook = epubParser.parse(Uri.parse(domainBook.filePath))
-                val startChapter = domainBook.currentChapter
-                    .coerceIn(0, epubBook.chapters.lastIndex.coerceAtLeast(0))
 
-                val savedOffset = domainBook.currentScrollOffset.coerceAtLeast(0)
+                val position = resolveInitialPosition(
+                    savedChapter = domainBook.currentChapter,
+                    savedScrollOffset = domainBook.currentScrollOffset,
+                    initialChapter = initialChapter,
+                    initialScrollOffset = initialScrollOffset,
+                    legacyPageNumber = legacyPageNumber,
+                    scrollMode = preferences.value.scrollMode,
+                    maxChapterIndex = epubBook.chapters.lastIndex.coerceAtLeast(0),
+                )
 
                 _uiState.value = ReaderUiState(
                     isLoading = false,
                     book = epubBook,
-                    currentChapterIndex = startChapter,
-                    currentChapter = epubBook.chapters.getOrNull(startChapter),
-                    // Dikey mod: piksel scroll pozisyonu
-                    initialScrollOffset = savedOffset,
+                    currentChapterIndex = position.chapter,
+                    currentChapter = epubBook.chapters.getOrNull(position.chapter),
+                    // Dikey mod: piksel scroll pozisyonu (WebView scroll-restore yolu bunu okur,
+                    // tek seferlik consume eder — yani BookProgressEntity'ye eagerly yazılmaz)
+                    initialScrollOffset = position.scrollOffset,
                 )
 
                 // Yatay sayfa modu: sayfa içi indeks olarak geri yükle
-                if (savedOffset > 0) {
+                if (position.scrollOffset > 0) {
                     _pagination.value = _pagination.value.copy(
-                        targetPageInChapter = savedOffset,
+                        targetPageInChapter = position.scrollOffset,
                     )
                 }
 
