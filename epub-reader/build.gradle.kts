@@ -32,6 +32,7 @@ android {
 
     buildFeatures {
         compose = true
+        buildConfig = false   // BuildConfig sınıfı üretme — küçük ama gereksiz dex kazancı
     }
 
     publishing {

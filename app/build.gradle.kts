@@ -25,6 +25,7 @@ android {
     buildTypes {
         release {
             isMinifyEnabled = true
+            isShrinkResources = true   // R8 + AAPT ile kullanılmayan resource'ları sil
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
@@ -39,6 +40,30 @@ android {
 
     buildFeatures {
         compose = true
+        buildConfig = false   // Lumen'in BuildConfig'e ihtiyacı yok — daha küçük dex
+    }
+
+    // ─── Paketleme optimizasyonları ─────────────────────────────────────────
+    // PdfBox'ın transitive bağımlısı BouncyCastle, post-quantum kripto için
+    // ~7.8 MB'lık parametre dosyası taşıyor (PICNIC, SIKE). Lumen PDF
+    // imzalamıyor / decrypt etmiyor — bu dosyaları APK'ya almıyoruz.
+    packaging {
+        resources {
+            // BouncyCastle Post-Quantum Crypto parametreleri — kullanılmıyor
+            // (PICNIC ~3.6 MB, SIKE ~4.5 MB — sadece bu satır ~8 MB tasarruf sağlar)
+            excludes += "org/bouncycastle/pqc/**"
+            excludes += "META-INF/services/org.bouncycastle.pqc.*"
+            // BouncyCastle X.509 sertifika doğrulama mesajları — kullanılmıyor
+            excludes += "org/bouncycastle/x509/CertPathReviewerMessages*.properties"
+            // Yaygın gereksiz META-INF dosyaları (lisans / metadata)
+            excludes += "META-INF/{AL2.0,LGPL2.1}"
+            excludes += "META-INF/DEPENDENCIES"
+            excludes += "META-INF/LICENSE*"
+            excludes += "META-INF/NOTICE*"
+            excludes += "META-INF/*.kotlin_module"   // compile-time only
+            excludes += "META-INF/proguard/**"       // tüketici-side ProGuard kuralları
+            excludes += "DebugProbesKt.bin"          // coroutines debug — release'de yok
+        }
     }
 }
 
