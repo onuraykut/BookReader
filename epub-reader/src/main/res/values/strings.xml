@@ -24,6 +24,7 @@
     <string name="reader_table_of_contents">İçindekiler</string>
     <string name="reader_notes">Notlar</string>
     <string name="reader_listen">Sesli Oku</string>
+    <string name="reader_tts_now_playing">Sesli okunuyor</string>
 
     <!-- ─── Reader Dialogs / Sheets ──────────────────────────────────────── -->
     <string name="dialog_go_to_chapter">Bölüme Git</string>

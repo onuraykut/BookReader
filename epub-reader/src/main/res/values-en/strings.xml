@@ -24,6 +24,7 @@
     <string name="reader_table_of_contents">Contents</string>
     <string name="reader_notes">Notes</string>
     <string name="reader_listen">Read Aloud</string>
+    <string name="reader_tts_now_playing">Reading aloud</string>
 
     <!-- ─── Reader Dialogs / Sheets ──────────────────────────────────────── -->
     <string name="dialog_go_to_chapter">Go to Chapter</string>

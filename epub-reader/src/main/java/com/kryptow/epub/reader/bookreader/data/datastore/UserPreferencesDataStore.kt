@@ -39,7 +39,7 @@ class UserPreferencesDataStore(private val context: Context) {
 
     val readingPreferences: Flow<ReadingPreferences> = context.dataStore.data.map { p ->
         ReadingPreferences(
-            fontSize = p[Keys.FONT_SIZE] ?: 18f,
+            fontSize = p[Keys.FONT_SIZE] ?: 12f,
             lineHeight = p[Keys.LINE_HEIGHT] ?: 1.5f,
             fontFamily = enumOrDefault(p[Keys.FONT_FAMILY], ReadingFontFamily.SERIF),
             marginHorizontal = p[Keys.MARGIN_HORIZONTAL] ?: 24,
@@ -49,7 +49,7 @@ class UserPreferencesDataStore(private val context: Context) {
             autoNightStartHour = p[Keys.AUTO_NIGHT_START] ?: 20,
             autoNightEndHour = p[Keys.AUTO_NIGHT_END] ?: 7,
             keepScreenOn = p[Keys.KEEP_SCREEN_ON] ?: true,
-            scrollMode = enumOrDefault(p[Keys.SCROLL_MODE], ScrollMode.VERTICAL),
+            scrollMode = enumOrDefault(p[Keys.SCROLL_MODE], ScrollMode.HORIZONTAL_PAGE),
         )
     }
 

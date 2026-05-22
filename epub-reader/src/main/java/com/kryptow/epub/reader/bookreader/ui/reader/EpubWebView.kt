@@ -59,23 +59,35 @@ fun EpubContentWebView(
     onMiddleTap: () -> Unit = {},
     onScrollOffsetConsumed: () -> Unit = {},
     onSearchResultCount: (total: Int, current: Int) -> Unit = { _, _ -> },
+    /** Bölümün sonundayken aşağıya doğru swipe — sonraki bölüm. */
+    onSwipeBeyondEnd: () -> Unit = {},
+    /** Bölümün en üstündeyken aşağıya doğru pull — önceki bölüm. */
+    onSwipeBeyondStart: () -> Unit = {},
 ) {
     val scrollCb = rememberUpdatedState(onScroll)
     val wordTappedCb = rememberUpdatedState(onWordTapped)
     val textSelectedCb = rememberUpdatedState(onTextSelected)
     val addNoteCb = rememberUpdatedState(onAddNote)
     val middleTapCb = rememberUpdatedState(onMiddleTap)
+    val swipeBeyondEndCb = rememberUpdatedState(onSwipeBeyondEnd)
+    val swipeBeyondStartCb = rememberUpdatedState(onSwipeBeyondStart)
     val searchResultCb = rememberUpdatedState(onSearchResultCount)
     val consumedCb = rememberUpdatedState(onScrollOffsetConsumed)
     val initialOffsetState = rememberUpdatedState(initialScrollOffset)
     val highlightsState = rememberUpdatedState(highlights)
     var scrollRestored by remember(htmlContent) { mutableStateOf(false) }
 
-    // JS bridge: yalnızca orta-tıklama (kelime tanımı artık ActionMode'dan geliyor)
+    // JS bridge: orta-tıklama + bölüm sonu / başı overscroll
     val bridge = remember {
         object {
             @JavascriptInterface
             fun onMiddleTap() = middleTapCb.value()
+
+            @JavascriptInterface
+            fun onScrollBeyondEnd() = swipeBeyondEndCb.value()
+
+            @JavascriptInterface
+            fun onScrollBeyondStart() = swipeBeyondStartCb.value()
         }
     }
 
@@ -343,19 +355,59 @@ ${highlightScript()}
 ${ttsScript()}
 (function() {
   var touchStartX = 0, touchStartY = 0, touchStartTime = 0;
+  var swipeCooldown = false;
+
+  function isAtBottom() {
+    var doc = document.documentElement;
+    var maxScroll = (doc.scrollHeight || document.body.scrollHeight) - window.innerHeight;
+    return window.scrollY >= maxScroll - 4;
+  }
+
+  function isAtTop() {
+    return window.scrollY <= 4;
+  }
+
   document.addEventListener('touchstart', function(e) {
     var t = e.changedTouches[0];
     touchStartX = t.clientX; touchStartY = t.clientY; touchStartTime = Date.now();
   }, { passive: true });
+
   document.addEventListener('touchend', function(e) {
     var t = e.changedTouches[0];
     var dx = Math.abs(t.clientX - touchStartX);
     var dy = Math.abs(t.clientY - touchStartY);
     var dt = Date.now() - touchStartTime;
+
+    // 1) Orta tap → bar toggle
     if (dx < 15 && dy < 30 && dt < 400) {
       var x = t.clientX, w = window.innerWidth;
       if (x >= w / 3 && x <= 2 * w / 3 && window.AndroidReader) {
         AndroidReader.onMiddleTap();
+      }
+      return;
+    }
+
+    if (swipeCooldown) return;
+    var swipeY = touchStartY - t.clientY;        // +: parmak yukarı (sonraki), -: aşağı (önceki)
+    var primarilyVertical = Math.abs(swipeY) > dx * 1.2;
+    if (!primarilyVertical || dt >= 800) return;
+
+    // 2) Bölüm sonundayken yukarı swipe → sonraki bölüm
+    if (swipeY > 80 && isAtBottom()) {
+      if (window.AndroidReader && AndroidReader.onScrollBeyondEnd) {
+        swipeCooldown = true;
+        setTimeout(function () { swipeCooldown = false; }, 1200);
+        AndroidReader.onScrollBeyondEnd();
+      }
+      return;
+    }
+
+    // 3) Bölüm başındayken aşağı swipe → önceki bölüm (pull-down)
+    if (swipeY < -80 && isAtTop()) {
+      if (window.AndroidReader && AndroidReader.onScrollBeyondStart) {
+        swipeCooldown = true;
+        setTimeout(function () { swipeCooldown = false; }, 1200);
+        AndroidReader.onScrollBeyondStart();
       }
     }
   }, { passive: true });

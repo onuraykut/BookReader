@@ -24,6 +24,7 @@
     <string name="reader_table_of_contents">Índice</string>
     <string name="reader_notes">Notas</string>
     <string name="reader_listen">Leer en voz alta</string>
+    <string name="reader_tts_now_playing">Reproduciendo voz</string>
 
     <!-- ─── Diálogos / Paneles ───────────────────────────────────────────── -->
     <string name="dialog_go_to_chapter">Ir al capítulo</string>

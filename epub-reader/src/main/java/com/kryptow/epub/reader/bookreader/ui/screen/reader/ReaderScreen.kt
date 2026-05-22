@@ -2,11 +2,16 @@ package com.kryptow.epub.reader.bookreader.ui.screen.reader
 
 import android.app.Activity
 import android.view.WindowManager
+import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.slideOutVertically
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -36,6 +41,7 @@ import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.VolumeUp
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
@@ -193,8 +199,6 @@ fun ReaderScreen(
 
     val currentChapterIndex = uiState.currentChapterIndex
     val isBookmarked = bookmarks.any { it.chapterIndex == currentChapterIndex }
-    // Mevcut bölüme ait vurgular
-    val chapterHighlights = highlights.filter { it.page == currentChapterIndex }
     val isPaged = preferences.scrollMode == ScrollMode.HORIZONTAL_PAGE
 
     // ─── Sayfa sayacı hesaplama ───────────────────────────────────────────────
@@ -255,9 +259,50 @@ fun ReaderScreen(
             )
 
             uiState.book != null -> {
-                when (preferences.scrollMode) {
-                    ScrollMode.VERTICAL -> {
-                        uiState.currentChapter?.let { chapter ->
+                val bookVal = uiState.book!!
+
+                // ─── Bölüm geçiş yönünü takip et (animasyon için) ─────────
+                // direction: +1 ileri (sonraki bölüm), -1 geri (önceki), 0 ilk yükleme
+                var lastChapter by remember { mutableStateOf(currentChapterIndex) }
+                val direction = remember(currentChapterIndex) {
+                    val d = when {
+                        currentChapterIndex > lastChapter -> 1
+                        currentChapterIndex < lastChapter -> -1
+                        else -> 0
+                    }
+                    lastChapter = currentChapterIndex
+                    d
+                }
+
+                AnimatedContent(
+                    targetState = currentChapterIndex,
+                    label = "chapterTransition",
+                    transitionSpec = {
+                        val fwd = direction >= 0
+                        if (preferences.scrollMode == ScrollMode.HORIZONTAL_PAGE) {
+                            // Yatay slide: ileri → soldan sağa, geri → sağdan sola
+                            (slideInHorizontally(tween(280)) { w -> if (fwd) w else -w } +
+                                    fadeIn(tween(280))) togetherWith
+                                    (slideOutHorizontally(tween(280)) { w -> if (fwd) -w else w } +
+                                            fadeOut(tween(280)))
+                        } else {
+                            // Dikey slide: ileri → alttan üste, geri → üstten alta
+                            (slideInVertically(tween(280)) { h -> if (fwd) h else -h } +
+                                    fadeIn(tween(280))) togetherWith
+                                    (slideOutVertically(tween(280)) { h -> if (fwd) -h else h } +
+                                            fadeOut(tween(280)))
+                        }
+                    },
+                    modifier = Modifier.fillMaxSize(),
+                ) { animatedChapterIdx ->
+                    val chapter = bookVal.chapters.getOrNull(animatedChapterIdx)
+                        ?: return@AnimatedContent
+                    // Bu bölüm composition'ı kendi vurgu listesini hesaplar — eski/yeni
+                    // composition kısa süre yan yana yaşar, her biri kendi içeriğini görür
+                    val chHighlights = highlights.filter { it.page == animatedChapterIdx }
+
+                    when (preferences.scrollMode) {
+                        ScrollMode.VERTICAL -> {
                             EpubContentWebView(
                                 htmlContent = chapter.content,
                                 preferences = preferences,
@@ -266,7 +311,7 @@ fun ReaderScreen(
                                 initialScrollOffset = uiState.initialScrollOffset,
                                 searchQuery = if (showSearch) search.query else "",
                                 searchDirection = search.searchDirection,
-                                highlights = chapterHighlights,
+                                highlights = chHighlights,
                                 ttsHighlightSentence = if (ttsState.isVisible) ttsState.currentSentence else "",
                                 onScroll = { scrollY -> viewModel.onVerticalScroll(scrollY) },
                                 onWordTapped = { word -> viewModel.onWordTapped(word) },
@@ -282,15 +327,15 @@ fun ReaderScreen(
                                 onSearchResultCount = { total, current ->
                                     viewModel.onSearchMatchResult(total, current)
                                 },
+                                // Dikey mod — bölüm sınırında swipe → bölüm değiştir
+                                onSwipeBeyondEnd = { viewModel.onSwipeBeyondEnd() },
+                                onSwipeBeyondStart = { viewModel.onSwipeBeyondStart() },
                             )
                         }
-                    }
 
-                    ScrollMode.HORIZONTAL_PAGE -> {
-                        val bookVal = uiState.book!!
-                        uiState.currentChapter?.let { chapter ->
+                        ScrollMode.HORIZONTAL_PAGE -> {
                             androidx.compose.runtime.key(
-                                currentChapterIndex,
+                                animatedChapterIdx,
                                 pagination.paginationEpoch,
                             ) {
                                 PaginatedEpubWebView(
@@ -301,11 +346,11 @@ fun ReaderScreen(
                                     modifier = Modifier.fillMaxSize(),
                                     searchQuery = if (showSearch) search.query else "",
                                     searchDirection = search.searchDirection,
-                                    highlights = chapterHighlights,
+                                    highlights = chHighlights,
                                     ttsHighlightSentence = if (ttsState.isVisible) ttsState.currentSentence else "",
                                     onWordTapped = { word -> viewModel.onWordTapped(word) },
                                     onPagesCalculated = { total ->
-                                        viewModel.onChapterPagesCalculated(currentChapterIndex, total)
+                                        viewModel.onChapterPagesCalculated(animatedChapterIdx, total)
                                     },
                                     onPageChanged = { page ->
                                         viewModel.onPageInChapterChanged(page)
@@ -326,26 +371,29 @@ fun ReaderScreen(
                                 )
                             }
                         }
+                    }
+                }
 
-                        // ─── Arka plan pagination indexer ──────────────────
-                        if (!pagination.isIndexComplete) {
-                            androidx.compose.runtime.key(pagination.paginationEpoch) {
-                                LaunchedEffect(pagination.paginationEpoch) {
-                                    viewModel.onIndexingStarted(bookVal.chapters.size)
-                                }
-                                BookPaginationIndexer(
-                                    chapters = bookVal.chapters,
-                                    preferences = preferences,
-                                    colors = colors,
-                                    paginationEpoch = pagination.paginationEpoch,
-                                    alreadyKnown = pagination.chapterPageCounts.keys,
-                                    onChapterIndexed = { idx, count ->
-                                        viewModel.onChapterPagesCalculated(idx, count)
-                                    },
-                                    onCompleted = { viewModel.onIndexingCompleted() },
-                                )
-                            }
+                // ─── Arka plan pagination indexer (AnimatedContent dışında —
+                //     bölüm değişiminde yeniden başlatmasın) ──────────────
+                if (preferences.scrollMode == ScrollMode.HORIZONTAL_PAGE &&
+                    !pagination.isIndexComplete
+                ) {
+                    androidx.compose.runtime.key(pagination.paginationEpoch) {
+                        LaunchedEffect(pagination.paginationEpoch) {
+                            viewModel.onIndexingStarted(bookVal.chapters.size)
                         }
+                        BookPaginationIndexer(
+                            chapters = bookVal.chapters,
+                            preferences = preferences,
+                            colors = colors,
+                            paginationEpoch = pagination.paginationEpoch,
+                            alreadyKnown = pagination.chapterPageCounts.keys,
+                            onChapterIndexed = { idx, count ->
+                                viewModel.onChapterPagesCalculated(idx, count)
+                            },
+                            onCompleted = { viewModel.onIndexingCompleted() },
+                        )
                     }
                 }
 
@@ -563,55 +611,134 @@ private fun ReaderTopBar(
         color = backgroundColor,
         shadowElevation = 4.dp,
     ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 4.dp, vertical = 8.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            IconButton(onClick = onBack) {
-                Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.back), tint = textColor)
-            }
-            Text(
-                text = title,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                color = textColor,
-                style = MaterialTheme.typography.titleSmall,
+        Column(modifier = Modifier.fillMaxWidth()) {
+
+            // ─── Satır 1 — Chrome (Back · Title · Search · Settings) ──────
+            Row(
                 modifier = Modifier
-                    .weight(1f)
-                    .padding(start = 8.dp),
+                    .fillMaxWidth()
+                    .height(56.dp)
+                    .padding(horizontal = 4.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                IconButton(onClick = onBack) {
+                    Icon(
+                        Icons.AutoMirrored.Filled.ArrowBack,
+                        contentDescription = stringResource(R.string.back),
+                        tint = textColor,
+                    )
+                }
+                Text(
+                    text = title,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    color = textColor,
+                    style = MaterialTheme.typography.titleMedium,
+                    modifier = Modifier
+                        .weight(1f)
+                        .padding(start = 8.dp, end = 8.dp),
+                )
+                IconButton(onClick = onSearch) {
+                    Icon(
+                        Icons.Default.Search,
+                        contentDescription = stringResource(R.string.search),
+                        tint = textColor,
+                    )
+                }
+                IconButton(onClick = onSettings) {
+                    Icon(
+                        Icons.Default.Settings,
+                        contentDescription = stringResource(R.string.settings),
+                        tint = textColor,
+                    )
+                }
+            }
+
+            // ─── TTS-aktif pill (sadece TTS açıkken) ──────────────────────
+            AnimatedVisibility(
+                visible = isTtsActive,
+                enter = fadeIn() + slideInVertically { -it },
+                exit = fadeOut() + slideOutVertically { -it },
+            ) {
+                TtsActivePill(accentColor = accentColor, textColor = textColor)
+            }
+
+            // ─── İnce ayraç ───────────────────────────────────────────────
+            HorizontalDivider(
+                color = textColor.copy(alpha = 0.08f),
+                thickness = 1.dp,
             )
-            IconButton(onClick = onSearch) {
-                Icon(Icons.Default.Search, stringResource(R.string.search), tint = textColor)
-            }
-            IconButton(onClick = onToc) {
-                Icon(Icons.Default.List, stringResource(R.string.reader_table_of_contents), tint = textColor)
-            }
-            IconButton(onClick = onNotes) {
-                Icon(Icons.Default.Notes, stringResource(R.string.reader_notes), tint = textColor)
-            }
-            IconButton(onClick = onBookmark) {
-                Icon(
-                    if (isBookmarked) Icons.Default.Bookmark else Icons.Default.BookmarkBorder,
-                    stringResource(
-                        if (isBookmarked) R.string.reader_bookmark_remove
-                        else R.string.reader_bookmark_add
-                    ),
-                    tint = textColor,
-                )
-            }
-            IconButton(onClick = onTts) {
-                Icon(
-                    Icons.Default.VolumeUp,
-                    stringResource(R.string.reader_listen),
-                    tint = if (isTtsActive) accentColor else textColor,
-                )
-            }
-            IconButton(onClick = onSettings) {
-                Icon(Icons.Default.Settings, stringResource(R.string.settings), tint = textColor)
+
+            // ─── Satır 2 — Okuma araçları (TOC · Notes · Bookmark · TTS) ──
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(48.dp)
+                    .padding(horizontal = 8.dp),
+                horizontalArrangement = Arrangement.SpaceEvenly,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                IconButton(onClick = onToc) {
+                    Icon(
+                        Icons.Default.List,
+                        contentDescription = stringResource(R.string.reader_table_of_contents),
+                        tint = textColor,
+                    )
+                }
+                IconButton(onClick = onNotes) {
+                    Icon(
+                        Icons.Default.Notes,
+                        contentDescription = stringResource(R.string.reader_notes),
+                        tint = textColor,
+                    )
+                }
+                IconButton(onClick = onBookmark) {
+                    Icon(
+                        if (isBookmarked) Icons.Default.Bookmark else Icons.Default.BookmarkBorder,
+                        contentDescription = stringResource(
+                            if (isBookmarked) R.string.reader_bookmark_remove
+                            else R.string.reader_bookmark_add
+                        ),
+                        tint = textColor,
+                    )
+                }
+                IconButton(onClick = onTts) {
+                    Icon(
+                        Icons.Default.VolumeUp,
+                        contentDescription = stringResource(R.string.reader_listen),
+                        tint = if (isTtsActive) accentColor else textColor,
+                    )
+                }
             }
         }
+    }
+}
+
+/**
+ * TTS aktifken Row 1 ile Row 2 arasında beliren küçük status pill.
+ * 🔊 ikonu + "Sesli okunuyor" — kullanıcı durumu bir bakışta anlasın.
+ */
+@Composable
+private fun TtsActivePill(accentColor: Color, textColor: Color) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 6.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.Center,
+    ) {
+        Icon(
+            imageVector = Icons.Default.VolumeUp,
+            contentDescription = null,
+            tint = accentColor,
+            modifier = Modifier.size(14.dp),
+        )
+        Spacer(Modifier.width(8.dp))
+        Text(
+            text = stringResource(R.string.reader_tts_now_playing),
+            color = textColor.copy(alpha = 0.85f),
+            style = MaterialTheme.typography.labelMedium,
+        )
     }
 }
 

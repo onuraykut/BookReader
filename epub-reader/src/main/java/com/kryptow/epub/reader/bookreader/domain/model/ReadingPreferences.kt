@@ -2,7 +2,7 @@ package com.kryptow.epub.reader.bookreader.domain.model
 
 data class ReadingPreferences(
     // Tipografi
-    val fontSize: Float = 18f,                      // 12pt - 32pt
+    val fontSize: Float = 12f,                      // 12pt - 32pt
     val lineHeight: Float = 1.5f,                   // 1.0x - 2.0x
     val fontFamily: ReadingFontFamily = ReadingFontFamily.SERIF,
     val marginHorizontal: Int = 24,                 // dp
