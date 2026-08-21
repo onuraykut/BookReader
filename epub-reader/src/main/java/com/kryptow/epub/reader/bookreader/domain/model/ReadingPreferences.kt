@@ -39,4 +39,4 @@ enum class NightTheme { TRUE_BLACK, DARK_GRAY, SEPIA }
 
 enum class ReadingFontFamily { SERIF, SANS_SERIF, MONOSPACE, SYSTEM, CURSIVE }
 
-enum class ScrollMode { VERTICAL, HORIZONTAL_PAGE }
+enum class ScrollMode { HORIZONTAL_PAGE, VERTICAL }
