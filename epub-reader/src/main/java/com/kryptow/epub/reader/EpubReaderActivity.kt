@@ -70,9 +70,12 @@ class EpubReaderActivity : ComponentActivity() {
 
         when {
             bookId != -1L -> showReader(bookId)
-            fileUri != null -> {
-                if (fileUri.isPdf(this)) showPdfReader(fileUri)
-                else resolveAndOpen(fileUri)
+            fileUri != null -> lifecycleScope.launch {
+                // ContentResolver sorgusu IPC'dir — ana thread'i bloklamasın
+                val isPdf = withContext(Dispatchers.IO) {
+                    runCatching { fileUri.isPdf(this@EpubReaderActivity) }.getOrDefault(false)
+                }
+                if (isPdf) showPdfReader(fileUri) else resolveAndOpen(fileUri)
             }
             else -> {
                 Toast.makeText(this, getString(R.string.error_invalid_book), Toast.LENGTH_SHORT).show()
@@ -107,17 +110,22 @@ class EpubReaderActivity : ComponentActivity() {
 
         // 2) Yoksa parse et ve ekle
         return try {
-            val epubBook = epubParser.parse(uri)
-            val coverPath = epubBook.coverImageBytes?.let { epubParser.saveCoverImage(it, uri) }
+            // Yalnızca metadata: kitap okuyucuda zaten tam ayrıştırılacak (iki kez değil)
+            val meta = epubParser.parseMetadata(uri)
+            val coverPath = meta.coverImageBytes?.let { epubParser.saveCoverImage(it, uri) }
             val book = Book(
-                title = epubBook.title.ifBlank { uri.lastPathSegment ?: getString(R.string.error_unknown_book) },
-                author = epubBook.author.ifBlank { getString(R.string.error_unknown_author) },
+                title = meta.title.ifBlank { uri.lastPathSegment ?: getString(R.string.error_unknown_book) },
+                author = meta.author.ifBlank { getString(R.string.error_unknown_author) },
                 filePath = uriString,
                 coverPath = coverPath,
-                totalChapters = epubBook.chapters.size,
+                totalChapters = meta.chapterCount,
             )
             bookRepository.addBook(book)
+        } catch (e: kotlinx.coroutines.CancellationException) {
+            throw e
         } catch (e: Exception) {
+            null
+        } catch (e: OutOfMemoryError) {
             null
         }
     }

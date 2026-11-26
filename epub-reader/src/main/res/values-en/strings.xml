@@ -228,4 +228,6 @@
         <item quantity="one">%d day in a row</item>
         <item quantity="other">%d days in a row</item>
     </plurals>
+    <string name="error_book_too_large">This book is too large to open on this device.</string>
+    <string name="error_open_failed">Couldn\'t open the book. The file may have been moved or deleted.</string>
 </resources>

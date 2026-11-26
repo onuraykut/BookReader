@@ -84,6 +84,7 @@
     <string msgid="7621130025103996211" name="error_action_finish">"Cerrar aplicación"</string>
     <string msgid="985347670495166517" name="error_action_retry">"Reintentar"</string>
     <string msgid="4802951804749609593" name="error_action_update_host">"Buscar actualizaciones"</string>
+    <string name="error_book_too_large">Este libro es demasiado grande para abrirlo en este dispositivo.</string>
     <string name="error_epub_open">No se pudo abrir el EPUB</string>
     <string name="error_invalid_book">Libro inválido</string>
     <string msgid="3323186720368387787" name="error_message_client_side_error">"Error de la aplicación. Informa de este error al desarrollador de la aplicación."</string>
@@ -94,6 +95,7 @@
     <string msgid="2591031904206928207" name="error_message_multiple_hosts">"Sistema incompatible"</string>
     <string msgid="5866202078252905802" name="error_message_no_vending">"Ponte en contacto con el servicio de coches"</string>
     <string msgid="1918523834689044166" name="error_message_unknown_error">"Error desconocido"</string>
+    <string name="error_open_failed">No se pudo abrir el libro. Es posible que el archivo se haya movido o eliminado.</string>
     <string name="error_unknown_author">Autor desconocido</string>
     <string name="error_unknown_book">Libro desconocido</string>
     <string name="error_unknown_title">Título desconocido</string>

@@ -24,6 +24,7 @@ import com.kryptow.epub.reader.R
 import com.kryptow.epub.reader.bookreader.epub.EpubParser
 import com.kryptow.epub.reader.bookreader.epub.FolderScanner
 import com.kryptow.epub.reader.bookreader.pdf.PdfPageRenderer
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -33,6 +34,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 enum class LibraryTab { ALL, RECENT, FAVORITES }
 enum class LibraryViewMode { GRID, LIST }
@@ -155,9 +157,13 @@ class LibraryViewModel(
             _isLoading.value = true
             _error.value = null
             try {
-                if (uri.isPdf(context)) addSinglePdf(uri) else addSingleEpub(uri)
+                if (isPdfOffMain(uri)) addSinglePdf(uri) else addSingleEpub(uri)
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
             } catch (e: Exception) {
                 _error.value = context.getString(R.string.import_failed, e.message ?: "")
+            } catch (e: OutOfMemoryError) {
+                _error.value = context.getString(R.string.error_book_too_large)
             } finally {
                 _isLoading.value = false
             }
@@ -169,16 +175,24 @@ class LibraryViewModel(
             _isLoading.value = true
             _error.value = null
             try {
-                val foundUris = folderScanner.scanForEpubs(treeUri)
-                val existingPaths = allBooks.value.map { it.filePath }.toSet()
+                // DocumentFile.listFiles() her klasör için IPC yapar — ana thread'de ANR'a yol açar
+                val foundUris = withContext(Dispatchers.IO) { folderScanner.scanForBooks(treeUri) }
+                // Filtre/arama uygulanmamış tam liste ile karşılaştır
+                val existingPaths = _allBooksRaw.value.map { it.filePath }.toSet()
                 var added = 0
                 var failed = 0
                 for (uri in foundUris) {
                     if (uri.toString() in existingPaths) continue
                     try {
-                        if (uri.isPdf(context)) addSinglePdf(uri) else addSingleEpub(uri)
+                        if (isPdfOffMain(uri)) addSinglePdf(uri) else addSingleEpub(uri)
                         added++
-                    } catch (_: Exception) { failed++ }
+                    } catch (e: kotlinx.coroutines.CancellationException) {
+                        throw e
+                    } catch (_: Exception) {
+                        failed++
+                    } catch (_: OutOfMemoryError) {
+                        failed++
+                    }
                 }
                 _info.value = when {
                     foundUris.isEmpty() -> context.getString(R.string.import_no_files_in_folder)
@@ -195,29 +209,35 @@ class LibraryViewModel(
     }
 
     private suspend fun addSingleEpub(uri: Uri) {
-        val epubBook = epubParser.parse(uri)
-        val coverPath = epubBook.coverImageBytes?.let { epubParser.saveCoverImage(it, uri) }
+        // Yalnızca metadata + kapak okunur (bölümler ve görseller belleğe alınmaz)
+        val meta = epubParser.parseMetadata(uri)
+        val coverPath = meta.coverImageBytes?.let { bytes ->
+            withContext(Dispatchers.IO) { epubParser.saveCoverImage(bytes, uri) }
+        }
         addBookUseCase(
             Book(
-                title = epubBook.title.ifBlank { uri.lastPathSegment ?: context.getString(R.string.error_unknown_book) },
-                author = epubBook.author.ifBlank { context.getString(R.string.error_unknown_author) },
+                title = meta.title.ifBlank { uri.lastPathSegment ?: context.getString(R.string.error_unknown_book) },
+                author = meta.author.ifBlank { context.getString(R.string.error_unknown_author) },
                 filePath = uri.toString(),
                 coverPath = coverPath,
-                totalChapters = epubBook.chapters.size,
+                totalChapters = meta.chapterCount,
             )
         )
     }
 
+    private suspend fun isPdfOffMain(uri: Uri): Boolean =
+        withContext(Dispatchers.IO) { uri.isPdf(context) }
+
     private suspend fun addSinglePdf(uri: Uri) {
-        // Önce OpenableColumns'dan görünen dosya adını al
-        val displayName = runCatching {
+        // Önce OpenableColumns'dan görünen dosya adını al (ContentResolver IPC → IO)
+        val displayName = withContext(Dispatchers.IO) { runCatching {
             var name: String? = null
             val cursor = context.contentResolver.query(
                 uri, arrayOf(OpenableColumns.DISPLAY_NAME), null, null, null
             )
             cursor?.use { if (it.moveToFirst()) name = it.getString(0) }
             name
-        }.getOrNull()
+        }.getOrNull() }
 
         val fileName = (displayName ?: uri.lastPathSegment ?: context.getString(R.string.pdf_document))
             .removeSuffix(".pdf")

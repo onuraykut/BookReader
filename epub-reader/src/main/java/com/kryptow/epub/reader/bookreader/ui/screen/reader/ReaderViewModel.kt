@@ -20,13 +20,17 @@ import com.kryptow.epub.reader.bookreader.domain.usecase.AddHighlightUseCase
 import com.kryptow.epub.reader.bookreader.domain.usecase.GetBookmarksUseCase
 import com.kryptow.epub.reader.bookreader.domain.usecase.GetHighlightsUseCase
 import com.kryptow.epub.reader.bookreader.domain.usecase.UpdateReadingProgressUseCase
+import com.kryptow.epub.reader.R
 import com.kryptow.epub.reader.bookreader.epub.EpubParser
+import com.kryptow.epub.reader.bookreader.epub.EpubTooLargeException
 import com.kryptow.epub.reader.bookreader.epub.model.EpubBook
 import com.kryptow.epub.reader.bookreader.epub.model.EpubChapter
 import com.kryptow.epub.reader.bookreader.ui.reader.TtsManager
 import com.kryptow.epub.reader.bookreader.ui.reader.TtsPlayState
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.NonCancellable
+import kotlinx.coroutines.yield
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
@@ -46,6 +50,8 @@ data class ReaderUiState(
     val currentChapterIndex: Int = 0,
     val currentChapter: EpubChapter? = null,
     val error: String? = null,
+    /** Yerelleştirilmiş hata (öncelikli). */
+    @androidx.annotation.StringRes val errorRes: Int? = null,
     /**
      * Dikey modda: kitap yeniden açıldığında geri dönülecek piksel Y konumu.
      * [EpubContentWebView] bunu bir kez kullanır, sonra [consumeInitialScrollOffset]
@@ -205,8 +211,11 @@ class ReaderViewModel(
     private var verticalFraction: Float = 0f
     /** Bu oturumda kitap "bitti" olarak işaretlendi mi? */
     private var finishedMarked = false
-    /** Bölüm indeksi → kelime sayısı önbelleği. */
-    private val wordCountCache = HashMap<Int, Int>()
+    /** Bölüm düz metinleri / kelime sayıları (arka planda hesaplanır). */
+    @Volatile private var plainTexts: List<String>? = null
+    @Volatile private var wordCounts: List<Int>? = null
+    private var searchJob: Job? = null
+    private var ttsContentJob: Job? = null
     private var bookId: Long = -1L
     /** Dikey modda son kaydedilen scroll Y — flushProgress'de kullanılır */
     private var _lastScrollY: Int = 0
@@ -244,7 +253,7 @@ class ReaderViewModel(
                     goToChapter(s.currentChapterIndex + 1)
                     delay(400) // yeni bölüm yüklenene kadar bekle
                     val content = _uiState.value.currentChapter?.content ?: return@launch
-                    ttsManager.setContent(content)
+                    ttsManager.setContentAsync(content)
                     ttsManager.play()
                 } else {
                     // Kitap bitti
@@ -314,8 +323,17 @@ class ReaderViewModel(
                 recomputeMinutesLeft()
                 launch { getBookmarksUseCase(bookId).collect { _bookmarks.value = it } }
                 launch { getHighlightsUseCase(bookId).collect { _highlights.value = it } }
-            } catch (e: Exception) {
+                // Arama ve süre tahmini için düz metni bir kez, arka planda hazırla
+                launch { buildTextIndex(epubBook) }
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
+            } catch (e: EpubTooLargeException) {
                 _uiState.value = ReaderUiState(isLoading = false, error = e.message)
+            } catch (e: Exception) {
+                // Teknik mesaj (URI, SecurityException…) yerine anlaşılır hata göster
+                _uiState.value = ReaderUiState(isLoading = false, errorRes = R.string.error_open_failed)
+            } catch (e: OutOfMemoryError) {
+                _uiState.value = ReaderUiState(isLoading = false, errorRes = R.string.error_book_too_large)
             }
         }
     }
@@ -340,9 +358,10 @@ class ReaderViewModel(
         markInteraction()
         saveProgress(0)
         recomputeMinutesLeft()
-        // TTS aktifse yeni bölümün içeriğini yükle
+        // TTS aktifse yeni bölümün içeriğini yükle (cümle ayıklama arka planda)
         if (_tts.value.isVisible) {
-            ttsManager.setContent(chapter.content)
+            ttsContentJob?.cancel()
+            ttsContentJob = viewModelScope.launch { ttsManager.setContentAsync(chapter.content) }
         }
     }
 
@@ -522,8 +541,11 @@ class ReaderViewModel(
         if (!_tts.value.isVisible) {
             val content = _uiState.value.currentChapter?.content ?: return
             _tts.value = _tts.value.copy(isVisible = true)
-            ttsManager.setContent(content)
-            ttsManager.play()
+            ttsContentJob?.cancel()
+            ttsContentJob = viewModelScope.launch {
+                ttsManager.setContentAsync(content)
+                ttsManager.play()
+            }
         } else {
             when (_tts.value.playState) {
                 TtsPlayState.IDLE -> ttsManager.play()
@@ -587,14 +609,21 @@ class ReaderViewModel(
         val book = _uiState.value.book ?: return
         _search.value = _search.value.copy(isSearching = true)
 
-        viewModelScope.launch {
-            val results = mutableListOf<SearchResult>()
-            val queryLower = query.lowercase()
-            book.chapters.forEachIndexed { index, chapter ->
-                val plain = chapter.content
-                    .replace(Regex("<[^>]+>"), " ")
-                    .replace(Regex("\\s+"), " ")
-                    .trim()
+        searchJob?.cancel()
+        searchJob = viewModelScope.launch {
+            // Tüm kitabı taramak büyük kitaplarda saniyeler sürer — ana thread'de ANR'a yol açar
+            val results = withContext(Dispatchers.Default) { searchChapters(book, query) }
+            _search.value = _search.value.copy(results = results, isSearching = false)
+        }
+    }
+
+    private suspend fun searchChapters(book: EpubBook, query: String): List<SearchResult> {
+        val results = mutableListOf<SearchResult>()
+        val queryLower = query.lowercase()
+        val texts = plainTexts ?: book.chapters.map { ReadingTimeEstimator.plainText(it.content) }
+        run {
+            texts.forEachIndexed { index, plain ->
+                yield() // iptal edilebilir olsun (yeni sorgu yazıldığında)
                 val plainLower = plain.lowercase()
                 var pos = plainLower.indexOf(queryLower)
                 if (pos >= 0) {
@@ -608,8 +637,19 @@ class ReaderViewModel(
                     results.add(SearchResult(chapterIndex = index, textSnippet = snippet))
                 }
             }
-            _search.value = _search.value.copy(results = results, isSearching = false)
         }
+        return results
+    }
+
+    /** Bölümlerin düz metni ve kelime sayıları — [loadBook] sonrası arka planda doldurulur. */
+    private suspend fun buildTextIndex(book: EpubBook) {
+        val texts = withContext(Dispatchers.Default) {
+            book.chapters.map { ReadingTimeEstimator.plainText(it.content) }
+        }
+        val counts = withContext(Dispatchers.Default) { texts.map { ReadingTimeEstimator.wordCountOfText(it) } }
+        plainTexts = texts
+        wordCounts = counts
+        recomputeMinutesLeft()
     }
 
     /** WebView'deki eşleşme sayısını günceller (WebView.setFindListener'dan gelir). */
@@ -706,9 +746,9 @@ class ReaderViewModel(
     private fun recomputeMinutesLeft() {
         val s = _uiState.value
         val chapter = s.currentChapter ?: run { _chapterMinutesLeft.value = null; return }
-        val words = wordCountCache.getOrPut(s.currentChapterIndex) {
-            ReadingTimeEstimator.wordCount(chapter.content)
-        }
+        // Kelime sayıları arka planda hesaplanır; hazır değilse tahmini sonra göster
+        val words = wordCounts?.getOrNull(s.currentChapterIndex)
+            ?: run { _chapterMinutesLeft.value = null; return }
         val remaining = if (preferences.value.scrollMode == ScrollMode.HORIZONTAL_PAGE) {
             val p = _pagination.value
             val total = p.chapterPageCounts[s.currentChapterIndex]

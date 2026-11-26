@@ -228,4 +228,6 @@
         <item quantity="one">%d día seguido</item>
         <item quantity="other">%d días seguidos</item>
     </plurals>
+    <string name="error_book_too_large">Este libro es demasiado grande para abrirlo en este dispositivo.</string>
+    <string name="error_open_failed">No se pudo abrir el libro. Es posible que el archivo se haya movido o eliminado.</string>
 </resources>

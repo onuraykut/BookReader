@@ -228,4 +228,6 @@
         <item quantity="one">%d gün üst üste</item>
         <item quantity="other">%d gün üst üste</item>
     </plurals>
+    <string name="error_book_too_large">Bu kitap cihaz belleğine sığmayacak kadar büyük.</string>
+    <string name="error_open_failed">Kitap açılamadı. Dosya taşınmış ya da silinmiş olabilir.</string>
 </resources>

@@ -12,7 +12,10 @@ import android.webkit.WebView
 import android.webkit.WebViewClient
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.viewinterop.AndroidView
@@ -37,7 +40,9 @@ private const val MENU_DEFINITION = 9003
  *
  * @param targetPageInChapter 0 = ilk sayfa, [Int.MAX_VALUE] = son sayfa.
  */
-@SuppressLint("SetJavaScriptEnabled")
+// JavascriptInterface: bridge metotları @JavascriptInterface ile işaretli; lint `remember {}`
+// içindeki tipi çözemediği için yanlış alarm veriyor.
+@SuppressLint("SetJavaScriptEnabled", "JavascriptInterface")
 @Composable
 fun PaginatedEpubWebView(
     htmlContent: String,
@@ -146,8 +151,16 @@ fun PaginatedEpubWebView(
         )
     }
 
+    // Renderer süreci ölürse artar → eski WebView yok edilir, yenisi oluşturulur
+    var rendererGeneration by remember { mutableIntStateOf(0) }
+
+    androidx.compose.runtime.key(rendererGeneration) {
     AndroidView(
         modifier = modifier,
+        onRelease = { wv ->
+            if (webViewRef.value === wv) webViewRef.value = null
+            wv.safeDestroy()
+        },
         factory = { ctx ->
             object : WebView(ctx) {
                 private var touchStartX = 0f
@@ -255,7 +268,7 @@ fun PaginatedEpubWebView(
                 isHorizontalScrollBarEnabled = false
                 overScrollMode = WebView.OVER_SCROLL_NEVER
                 addJavascriptInterface(bridge, "AndroidPagination")
-                webViewClient = object : WebViewClient() {
+                webViewClient = object : SafeWebViewClient({ rendererGeneration++ }) {
                     override fun onPageFinished(view: WebView?, url: String?) {
                         view?.evaluateJavascript("window.__tapZones__=${tapZonesState.value};", null)
                         view?.evaluateJavascript(
@@ -295,6 +308,7 @@ fun PaginatedEpubWebView(
             )
         },
     )
+    }
 }
 
 private fun targetPageInChapterSafe(target: Int): String =
@@ -307,11 +321,12 @@ private class PaginationBridge(
     private val onSwipeBeyondEnd: () -> Unit,
     private val onMiddleTap: () -> Unit,
 ) {
-    @JavascriptInterface fun onPagesCalculated(total: Int) = onPagesCalculated.invoke(total)
-    @JavascriptInterface fun onPageChanged(page: Int) = onPageChanged.invoke(page)
-    @JavascriptInterface fun onSwipeBeyondStart() = onSwipeBeyondStart.invoke()
-    @JavascriptInterface fun onSwipeBeyondEnd() = onSwipeBeyondEnd.invoke()
-    @JavascriptInterface fun onMiddleTap() = onMiddleTap.invoke()
+    // JavaBridge thread'inden ana thread'e aktar (bkz. WebViewSafety)
+    @JavascriptInterface fun onPagesCalculated(total: Int) = onMain { onPagesCalculated.invoke(total) }
+    @JavascriptInterface fun onPageChanged(page: Int) = onMain { onPageChanged.invoke(page) }
+    @JavascriptInterface fun onSwipeBeyondStart() = onMain { onSwipeBeyondStart.invoke() }
+    @JavascriptInterface fun onSwipeBeyondEnd() = onMain { onSwipeBeyondEnd.invoke() }
+    @JavascriptInterface fun onMiddleTap() = onMain { onMiddleTap.invoke() }
 }
 
 private fun buildPaginatedHtml(

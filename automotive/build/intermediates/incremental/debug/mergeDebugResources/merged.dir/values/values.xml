@@ -512,6 +512,7 @@
     <string name="error_action_finish">Close application</string>
     <string name="error_action_retry">Retry</string>
     <string name="error_action_update_host">Check for updates</string>
+    <string name="error_book_too_large">Bu kitap cihaz belleğine sığmayacak kadar büyük.</string>
     <string name="error_epub_open">EPUB açılamadı</string>
     <string name="error_invalid_book">Geçersiz kitap</string>
     <string name="error_message_client_side_error">Application error. Please report this error to
@@ -523,6 +524,7 @@
     <string name="error_message_multiple_hosts">Incompatible system</string>
     <string name="error_message_no_vending">Please contact car services</string>
     <string name="error_message_unknown_error">Unknown error</string>
+    <string name="error_open_failed">Kitap açılamadı. Dosya taşınmış ya da silinmiş olabilir.</string>
     <string name="error_unknown_author">Bilinmeyen Yazar</string>
     <string name="error_unknown_book">Bilinmeyen Kitap</string>
     <string name="error_unknown_title">Bilinmeyen Başlık</string>

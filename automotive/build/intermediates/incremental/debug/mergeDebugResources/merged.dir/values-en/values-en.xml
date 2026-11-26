@@ -40,8 +40,10 @@
     <string name="dictionary_translation">Translation</string>
     <string name="dictionary_translation_failed">Translation failed</string>
     <string name="error">Error</string>
+    <string name="error_book_too_large">This book is too large to open on this device.</string>
     <string name="error_epub_open">Failed to open EPUB</string>
     <string name="error_invalid_book">Invalid book</string>
+    <string name="error_open_failed">Couldn\'t open the book. The file may have been moved or deleted.</string>
     <string name="error_unknown_author">Unknown Author</string>
     <string name="error_unknown_book">Unknown Book</string>
     <string name="error_unknown_title">Unknown Title</string>

@@ -72,13 +72,22 @@ object ReadingTimeEstimator {
     private val ENTITY_REGEX = Regex("&[a-zA-Z#0-9]+;")
     private val WHITESPACE_REGEX = Regex("\\s+")
 
+    private val DATA_URI_REGEX = Regex("data:[^\"'\\s>]+")
+
+    /** HTML → arama / sayım için düz metin (inline base64 görseller önce atılır). */
+    fun plainText(html: String): String = html
+        .replace(DATA_URI_REGEX, " ")
+        .replace(STYLE_SCRIPT_REGEX, " ")
+        .replace(TAG_REGEX, " ")
+        .replace(ENTITY_REGEX, " ")
+        .replace(WHITESPACE_REGEX, " ")
+        .trim()
+
     /** HTML içeriğindeki yaklaşık kelime sayısı. */
-    fun wordCount(html: String): Int {
-        val text = html
-            .replace(STYLE_SCRIPT_REGEX, " ")
-            .replace(TAG_REGEX, " ")
-            .replace(ENTITY_REGEX, " ")
-            .trim()
+    fun wordCount(html: String): Int = wordCountOfText(plainText(html))
+
+    /** Düz metindeki kelime sayısı (harf/rakam içeren parçalar). */
+    fun wordCountOfText(text: String): Int {
         if (text.isEmpty()) return 0
         return text.split(WHITESPACE_REGEX).count { token -> token.any { it.isLetterOrDigit() } }
     }

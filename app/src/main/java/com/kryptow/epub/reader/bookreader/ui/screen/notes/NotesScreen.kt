@@ -90,6 +90,7 @@ fun NotesScreen(
                 actions = {
                     // Dışa aktarma: Markdown / CSV / düz metin → paylaşım menüsü
                     var exportMenu by remember { mutableStateOf(false) }
+                    val exportTitle = stringResource(LibR.string.notes_export)
                     Box {
                         IconButton(
                             onClick = { exportMenu = true },
@@ -110,7 +111,7 @@ fun NotesScreen(
                                         ShareHelper.share(
                                             context,
                                             viewModel.export(format),
-                                            context.getString(LibR.string.notes_export),
+                                            exportTitle,
                                         )
                                     },
                                 )

@@ -12,6 +12,7 @@ import android.webkit.WebViewClient
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
@@ -43,7 +44,9 @@ private const val MENU_DEFINITION = 9003
  * @param onAddNote "Not Ekle" seçilince tetiklenir — not dialogu gösterilir.
  * @param highlights Gösterilecek vurgular; bölüm değişince dışarıdan filtrelenir.
  */
-@SuppressLint("SetJavaScriptEnabled")
+// JavascriptInterface: bridge metotları @JavascriptInterface ile işaretli; lint `remember {}`
+// içindeki tipi çözemediği için yanlış alarm veriyor.
+@SuppressLint("SetJavaScriptEnabled", "JavascriptInterface")
 @Composable
 fun EpubContentWebView(
     htmlContent: String,
@@ -91,14 +94,15 @@ fun EpubContentWebView(
     // JS bridge: orta-tıklama + bölüm sonu / başı overscroll
     val bridge = remember {
         object {
+            // JavaBridge thread'inden ana thread'e aktar (bkz. WebViewSafety)
             @JavascriptInterface
-            fun onMiddleTap() = middleTapCb.value()
+            fun onMiddleTap() = onMain { middleTapCb.value() }
 
             @JavascriptInterface
-            fun onScrollBeyondEnd() = swipeBeyondEndCb.value()
+            fun onScrollBeyondEnd() = onMain { swipeBeyondEndCb.value() }
 
             @JavascriptInterface
-            fun onScrollBeyondStart() = swipeBeyondStartCb.value()
+            fun onScrollBeyondStart() = onMain { swipeBeyondStartCb.value() }
         }
     }
 
@@ -158,8 +162,16 @@ fun EpubContentWebView(
         )
     }
 
+    // Renderer süreci ölürse artar → eski WebView yok edilir, yenisi oluşturulur
+    var rendererGeneration by remember { mutableIntStateOf(0) }
+
+    androidx.compose.runtime.key(rendererGeneration) {
     AndroidView(
         modifier = modifier,
+        onRelease = { wv ->
+            if (webViewRef.value === wv) webViewRef.value = null
+            wv.safeDestroy()
+        },
         factory = { ctx ->
             // ── ActionMode override: sistem menüsüne "Vurgula" + "Not Ekle" ekler ──
             object : WebView(ctx) {
@@ -248,7 +260,7 @@ fun EpubContentWebView(
                         if (maxScroll <= 0f) 1f else (scrollY / maxScroll).coerceIn(0f, 1f)
                     )
                 }
-                webViewClient = object : WebViewClient() {
+                webViewClient = object : SafeWebViewClient({ rendererGeneration++ }) {
                     override fun onPageFinished(view: WebView?, url: String?) {
                         view?.evaluateJavascript("window.__tapZones__=${tapZonesState.value};", null)
                         // Scroll restore
@@ -298,6 +310,7 @@ fun EpubContentWebView(
             )
         },
     )
+    }
 }
 
 // ─── JSON yardımcısı ─────────────────────────────────────────────────────────

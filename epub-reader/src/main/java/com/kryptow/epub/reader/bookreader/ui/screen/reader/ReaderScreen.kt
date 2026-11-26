@@ -315,8 +315,8 @@ fun ReaderScreen(
                 color = colors.accent,
             )
 
-            uiState.error != null -> Text(
-                text = uiState.error!!,
+            uiState.error != null || uiState.errorRes != null -> Text(
+                text = uiState.errorRes?.let { stringResource(it) } ?: uiState.error.orEmpty(),
                 color = MaterialTheme.colorScheme.error,
                 modifier = Modifier
                     .align(Alignment.Center)

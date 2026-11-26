@@ -18,21 +18,85 @@ import javax.xml.parsers.DocumentBuilderFactory
 
 class EpubParser(private val context: Context) {
 
+    /**
+     * Kitabı tamamen ayrıştırır (okuyucu için). Bellek yetmezse [EpubTooLargeException]
+     * fırlatır — `OutOfMemoryError` uygulamayı çökertmek yerine normal hata yoluna girer.
+     */
     suspend fun parse(uri: Uri): EpubBook = withContext(Dispatchers.IO) {
-        val entries = mutableMapOf<String, ByteArray>()
+        try {
+            parseInternal(uri)
+        } catch (oom: OutOfMemoryError) {
+            throw EpubTooLargeException(context.getString(R.string.error_book_too_large), oom)
+        }
+    }
 
-        context.contentResolver.openInputStream(uri)?.use { stream ->
-            ZipInputStream(stream).use { zip ->
+    /**
+     * Kütüphaneye ekleme için hafif ayrıştırma: yalnızca başlık, yazar, bölüm sayısı ve kapak.
+     * Bölüm HTML'leri ve görseller belleğe alınmaz — klasör içe aktarma onlarca kat hızlanır.
+     */
+    suspend fun parseMetadata(uri: Uri): EpubMetadata = withContext(Dispatchers.IO) {
+        try {
+            // 1. geçiş: yalnızca container.xml + OPF
+            val meta = readEntries(uri) { name -> name == CONTAINER_PATH || name.endsWith(".opf", true) }
+            val opfPath = findOpfPath(meta)
+            val opfDir = opfPath.substringBeforeLast("/", "")
+            val root = parseXml((meta[opfPath] ?: error("OPF file not found at $opfPath")).inputStream())
+                .documentElement
+            val title = root.getElementsByTagName("dc:title").item(0)?.textContent?.trim()
+            val author = root.getElementsByTagName("dc:creator").item(0)?.textContent?.trim()
+            val manifest = buildManifest(root.getElementsByTagName("item"), opfDir)
+            val chapterCount = buildSpineOrder(root.getElementsByTagName("itemref")).size
+            // 2. geçiş: yalnızca kapak görseli
+            val coverHref = findCoverHref(manifest, root)
+            val cover = coverHref?.let { href ->
+                readEntries(uri) { name -> name.endsWith(href) }.values.firstOrNull()
+            }
+            EpubMetadata(
+                title = title.orEmpty(),
+                author = author.orEmpty(),
+                chapterCount = chapterCount,
+                coverImageBytes = cover,
+            )
+        } catch (oom: OutOfMemoryError) {
+            throw EpubTooLargeException(context.getString(R.string.error_book_too_large), oom)
+        }
+    }
+
+    /**
+     * Zip girdilerini okur; [accept] false dönen girdiler belleğe alınmaz.
+     * Zip bombası / aşırı büyük kitaplara karşı toplam boyut sınırı uygulanır.
+     */
+    private fun readEntries(uri: Uri, accept: (String) -> Boolean): Map<String, ByteArray> {
+        val entries = HashMap<String, ByteArray>()
+        var total = 0L
+        val stream = context.contentResolver.openInputStream(uri)
+            ?: throw java.io.FileNotFoundException("Cannot open URI: $uri")
+        stream.use {
+            ZipInputStream(it.buffered()).use { zip ->
                 var entry = zip.nextEntry
                 while (entry != null) {
-                    if (!entry.isDirectory) {
-                        entries[entry.name] = zip.readBytes()
+                    val name = entry.name
+                    if (!entry.isDirectory && accept(name)) {
+                        val bytes = zip.readBytes()
+                        if (bytes.size <= MAX_ENTRY_BYTES) {
+                            total += bytes.size
+                            if (total > MAX_TOTAL_BYTES) {
+                                throw EpubTooLargeException(context.getString(R.string.error_book_too_large))
+                            }
+                            entries[name] = bytes
+                        }
                     }
                     zip.closeEntry()
                     entry = zip.nextEntry
                 }
             }
-        } ?: error("Cannot open URI: $uri")
+        }
+        return entries
+    }
+
+    private fun parseInternal(uri: Uri): EpubBook {
+        // Ses / video / font / script gibi okuyucunun kullanmadığı dosyalar belleğe alınmaz
+        val entries = readEntries(uri) { name -> isUsefulEntry(name) }
 
         val opfPath = findOpfPath(entries)
         val opfDir = opfPath.substringBeforeLast("/", "")
@@ -65,7 +129,7 @@ class EpubParser(private val context: Context) {
             )
         }
 
-        EpubBook(
+        return EpubBook(
             title = title,
             author = author,
             coverImageBytes = coverImageBytes,
@@ -74,8 +138,33 @@ class EpubParser(private val context: Context) {
         )
     }
 
+    private fun isUsefulEntry(name: String): Boolean {
+        val ext = name.substringAfterLast('.', "").lowercase()
+        return name == CONTAINER_PATH || ext in USEFUL_EXTENSIONS
+    }
+
+    private fun findCoverHref(manifest: Map<String, String>, opfRoot: Element): String? {
+        val metaTags = opfRoot.getElementsByTagName("meta")
+        for (i in 0 until metaTags.length) {
+            val el = metaTags.item(i) as? Element ?: continue
+            if (el.getAttribute("name") == "cover") {
+                manifest[el.getAttribute("content")]?.let { return it }
+            }
+        }
+        val items = opfRoot.getElementsByTagName("item")
+        for (i in 0 until items.length) {
+            val el = items.item(i) as? Element ?: continue
+            if (el.getAttribute("properties").contains("cover-image")) return el.getAttribute("href")
+        }
+        for (i in 0 until items.length) {
+            val el = items.item(i) as? Element ?: continue
+            if (el.getAttribute("media-type").startsWith("image/")) return el.getAttribute("href")
+        }
+        return null
+    }
+
     private fun findOpfPath(entries: Map<String, ByteArray>): String {
-        val containerBytes = entries["META-INF/container.xml"]
+        val containerBytes = entries[CONTAINER_PATH]
             ?: error("META-INF/container.xml not found — not a valid EPUB")
         val doc = parseXml(containerBytes.inputStream())
         val rootfiles = doc.getElementsByTagName("rootfile")
@@ -204,7 +293,7 @@ class EpubParser(private val context: Context) {
             RegexOption.IGNORE_CASE,
         )
 
-        fun toDataUri(src: String): String? {
+        fun toDataUriUncached(src: String): String? {
             if (src.startsWith("data:") || src.startsWith("http:") || src.startsWith("https:")) return null
             val decoded = try { URLDecoder.decode(src, "UTF-8") } catch (_: Exception) { src }
             val resolved = normalizePath(if (chapterDir.isEmpty()) decoded else "$chapterDir/$decoded")
@@ -214,6 +303,10 @@ class EpubParser(private val context: Context) {
             val b64 = Base64.encodeToString(bytes, Base64.NO_WRAP)
             return "data:${imageMimeType(resolved)};base64,$b64"
         }
+
+        // Aynı görsel (ör. süsleme) birçok kez geçebilir — base64'ü bir kez üret
+        val cache = HashMap<String, String?>()
+        fun toDataUri(src: String): String? = cache.getOrPut(src) { toDataUriUncached(src) }
 
         var result = imgRegex.replace(bodyHtml) { m ->
             val dataUri = toDataUri(m.groupValues[3]) ?: return@replace m.value
@@ -268,5 +361,38 @@ class EpubParser(private val context: Context) {
         DocumentBuilderFactory.newInstance().apply {
             isNamespaceAware = true
             isValidating = false
+            isExpandEntityReferences = false
+            // Harici DTD'leri ağdan indirmeye çalışma (takılma / XXE riski); destek yoksa yoksay
+            runCatching { setFeature("http://apache.org/xml/features/nonvalidating/load-external-dtd", false) }
+            runCatching { setFeature("http://xml.org/sax/features/external-general-entities", false) }
+            runCatching { setFeature("http://xml.org/sax/features/external-parameter-entities", false) }
         }.newDocumentBuilder().parse(stream)
+
+    private companion object {
+        const val CONTAINER_PATH = "META-INF/container.xml"
+        /** Tek girdi sınırı — bundan büyük dosya (ör. dev bir görsel) atlanır. */
+        const val MAX_ENTRY_BYTES = 25 * 1024 * 1024
+        /** Belleğe alınan toplam sınır — base64 gömme ile ~1.4x büyür. */
+        const val MAX_TOTAL_BYTES = 150L * 1024 * 1024
+        val USEFUL_EXTENSIONS = setOf(
+            "opf", "ncx", "xml", "xhtml", "html", "htm",
+            "jpg", "jpeg", "png", "gif", "webp", "svg", "bmp",
+        )
+    }
 }
+
+/** Kütüphane listesi için hafif kitap bilgisi. */
+data class EpubMetadata(
+    val title: String,
+    val author: String,
+    val chapterCount: Int,
+    val coverImageBytes: ByteArray?,
+) {
+    override fun equals(other: Any?): Boolean =
+        other is EpubMetadata && title == other.title && author == other.author &&
+            chapterCount == other.chapterCount
+    override fun hashCode(): Int = (title.hashCode() * 31 + author.hashCode()) * 31 + chapterCount
+}
+
+/** Kitap cihaz belleğine sığmayacak kadar büyük. Mesaj kullanıcıya gösterilebilir. */
+class EpubTooLargeException(message: String, cause: Throwable? = null) : java.io.IOException(message, cause)
