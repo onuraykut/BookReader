@@ -1,0 +1,3 @@
+com.kryptow.epub.reader.bookreader.automotive
+string app_name
+xml automotive_app_desc

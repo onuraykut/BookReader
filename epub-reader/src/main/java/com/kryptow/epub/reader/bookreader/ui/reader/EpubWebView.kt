@@ -21,6 +21,9 @@ import androidx.compose.ui.viewinterop.AndroidView
 import com.kryptow.epub.reader.R
 import com.kryptow.epub.reader.bookreader.domain.model.Highlight
 import com.kryptow.epub.reader.bookreader.domain.model.ReadingPreferences
+import com.kryptow.epub.reader.bookreader.ui.screen.reader.PageTurn
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.emptyFlow
 
 // Sistem action mode menü öğe ID'leri
 private const val MENU_HIGHLIGHT = 9001
@@ -63,7 +66,15 @@ fun EpubContentWebView(
     onSwipeBeyondEnd: () -> Unit = {},
     /** Bölümün en üstündeyken aşağıya doğru pull — önceki bölüm. */
     onSwipeBeyondStart: () -> Unit = {},
+    /** Bölüm içi kaydırma oranı (0f = başı, 1f = sonu). */
+    onScrollFraction: (Float) -> Unit = {},
+    /** Sol/sağ üçte bire dokunarak bir ekran yukarı/aşağı kaydırma. */
+    tapZonesEnabled: Boolean = true,
+    /** Ses tuşu gibi dış kaynaklı sayfa çevirme istekleri. */
+    pageTurnRequests: Flow<PageTurn> = emptyFlow(),
 ) {
+    val scrollFractionCb = rememberUpdatedState(onScrollFraction)
+    val tapZonesState = rememberUpdatedState(tapZonesEnabled)
     val scrollCb = rememberUpdatedState(onScroll)
     val wordTappedCb = rememberUpdatedState(onWordTapped)
     val textSelectedCb = rememberUpdatedState(onTextSelected)
@@ -124,6 +135,17 @@ fun EpubContentWebView(
                 "});",
             null,
         )
+    }
+
+    LaunchedEffect(tapZonesEnabled) {
+        webViewRef.value?.evaluateJavascript("window.__tapZones__=$tapZonesEnabled;", null)
+    }
+
+    LaunchedEffect(pageTurnRequests) {
+        pageTurnRequests.collect { turn ->
+            val dir = if (turn == PageTurn.FORWARD) 1 else -1
+            webViewRef.value?.evaluateJavascript("if(window.__turn__)__turn__($dir);", null)
+        }
     }
 
     // TTS: okunan cümleyi işaretle ve görünüme kaydır
@@ -217,9 +239,18 @@ fun EpubContentWebView(
                 }
                 setBackgroundColor(android.graphics.Color.TRANSPARENT)
                 addJavascriptInterface(bridge, "AndroidReader")
-                setOnScrollChangeListener { _, _, scrollY, _, _ -> scrollCb.value(scrollY) }
+                setOnScrollChangeListener { v, _, scrollY, _, _ ->
+                    scrollCb.value(scrollY)
+                    val wv = v as WebView
+                    val contentPx = wv.contentHeight * wv.resources.displayMetrics.density
+                    val maxScroll = contentPx - wv.height
+                    scrollFractionCb.value(
+                        if (maxScroll <= 0f) 1f else (scrollY / maxScroll).coerceIn(0f, 1f)
+                    )
+                }
                 webViewClient = object : WebViewClient() {
                     override fun onPageFinished(view: WebView?, url: String?) {
+                        view?.evaluateJavascript("window.__tapZones__=${tapZonesState.value};", null)
                         // Scroll restore
                         val offset = initialOffsetState.value
                         if (offset > 0 && !scrollRestored) {
@@ -367,6 +398,19 @@ ${ttsScript()}
     return window.scrollY <= 4;
   }
 
+  if (typeof window.__tapZones__ === 'undefined') window.__tapZones__ = true;
+
+  /** Bir ekran ileri/geri kaydır; bölüm sınırındaysa bölüm değiştir. */
+  window.__turn__ = function(dir) {
+    if (dir > 0) {
+      if (isAtBottom()) { if (window.AndroidReader) AndroidReader.onScrollBeyondEnd(); return; }
+      window.scrollBy({ top: window.innerHeight * 0.9, behavior: 'smooth' });
+    } else {
+      if (isAtTop()) { if (window.AndroidReader) AndroidReader.onScrollBeyondStart(); return; }
+      window.scrollBy({ top: -window.innerHeight * 0.9, behavior: 'smooth' });
+    }
+  };
+
   document.addEventListener('touchstart', function(e) {
     var t = e.changedTouches[0];
     touchStartX = t.clientX; touchStartY = t.clientY; touchStartTime = Date.now();
@@ -381,6 +425,10 @@ ${ttsScript()}
     // 1) Orta tap → bar toggle
     if (dx < 15 && dy < 30 && dt < 400) {
       var x = t.clientX, w = window.innerWidth;
+      var sel = window.getSelection();
+      if (sel && sel.toString().trim().length > 2) return;
+      if (window.__tapZones__ && x < w / 3) { window.__turn__(-1); return; }
+      if (window.__tapZones__ && x > 2 * w / 3) { window.__turn__(1); return; }
       if (x >= w / 3 && x <= 2 * w / 3 && window.AndroidReader) {
         AndroidReader.onMiddleTap();
       }
@@ -455,7 +503,8 @@ window.__ttsMark__ = function(text) {
     parent.replaceChild(after, tn);
     parent.insertBefore(span, after);
     if (idx > 0) parent.insertBefore(document.createTextNode(val.substring(0, idx)), span);
-    span.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    if (window.__onTtsMarked__) window.__onTtsMarked__(span);
+    else span.scrollIntoView({ behavior: 'smooth', block: 'center' });
     break;
   }
 };

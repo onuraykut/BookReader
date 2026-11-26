@@ -107,6 +107,8 @@
     <string name="color_blue">Blue</string>
     <string name="color_red">Red</string>
     <string name="color_orange">Orange</string>
+    <string name="color_pink">Pink</string>
+    <string name="color_purple">Purple</string>
 
     <!-- ─── Library ──────────────────────────────────────────────────────── -->
     <string name="library_title">Library</string>
@@ -173,4 +175,57 @@
     <string name="car_chapters_count">%1$d chapters</string>
     <string name="car_progress_format">%1$d%% read</string>
     <string name="car_now_playing">Now Playing</string>
+
+    <!-- ─── Faz 1: istatistik, kütüphane, kontroller, dışa aktarma ─── -->
+    <string name="reader_minutes_left_chapter">%1$d min left in chapter</string>
+    <string name="reader_brightness">Brightness</string>
+    <string name="reader_brightness_system">System</string>
+    <string name="tts_sleep_timer">Sleep timer</string>
+    <string name="tts_sleep_end_of_chapter">End of chapter</string>
+    <string name="off">Off</string>
+    <string name="minutes_short">%1$d min</string>
+    <string name="hours_minutes_short">%1$d h %2$d min</string>
+    <string name="settings_section_controls">Controls</string>
+    <string name="settings_tap_zones">Tap screen edges to turn pages</string>
+    <string name="settings_volume_keys">Turn pages with volume keys</string>
+    <string name="settings_volume_keys_inverted">Invert volume key direction</string>
+    <string name="settings_daily_goal">Daily reading goal: %1$s</string>
+    <string name="library_sort">Sort</string>
+    <string name="sort_last_read">Last read</string>
+    <string name="sort_date_added">Date added</string>
+    <string name="sort_title">Title</string>
+    <string name="sort_author">Author</string>
+    <string name="sort_progress">Progress</string>
+    <string name="filter_unread">Unread</string>
+    <string name="filter_reading">Reading</string>
+    <string name="filter_finished">Finished</string>
+    <string name="book_mark_finished">Mark as finished</string>
+    <string name="book_mark_unfinished">Mark as not finished</string>
+    <string name="book_favorite_add">Add to favorites</string>
+    <string name="book_favorite_remove">Remove from favorites</string>
+    <string name="book_remove">Remove from library</string>
+    <string name="book_remove_desc">The file itself is not deleted, but this book\'s highlights, notes and bookmarks will be removed.</string>
+    <string name="book_remove_confirm">Remove</string>
+    <string name="stats_today">Today</string>
+    <string name="stats_goal_progress">%1$d / %2$d min</string>
+    <string name="stats_goal_reached">Daily goal reached</string>
+    <string name="stats_total">Total: %1$s</string>
+    <string name="stats_daily_goal">Daily goal</string>
+    <string name="stats_last_7_days">Last 7 days</string>
+    <string name="stats_no_streak">Read today to start a streak</string>
+    <string name="notes_export">Export</string>
+    <string name="export_markdown">Markdown (Obsidian, Notion)</string>
+    <string name="export_csv">CSV (Excel, Sheets)</string>
+    <string name="export_text">Plain text</string>
+    <string name="export_note_label">Note</string>
+    <string name="export_color_label">Color</string>
+    <string name="export_date_label">Date</string>
+    <string name="export_chapter_label">Chapter</string>
+    <string name="export_text_label">Text</string>
+    <string name="library_no_match">No books match this filter</string>
+    <string name="stats_goal_dialog_desc">Choose how long you want to read each day. Every day you read at least 1 minute counts toward your streak.</string>
+    <plurals name="stats_streak_days">
+        <item quantity="one">%d day in a row</item>
+        <item quantity="other">%d days in a row</item>
+    </plurals>
 </resources>

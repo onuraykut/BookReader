@@ -7,6 +7,13 @@ import android.provider.OpenableColumns
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.kryptow.epub.reader.bookreader.domain.model.Book
+import com.kryptow.epub.reader.bookreader.domain.model.LibraryOrganizer
+import com.kryptow.epub.reader.bookreader.domain.model.LibrarySortOrder
+import com.kryptow.epub.reader.bookreader.domain.model.ReadingStats
+import com.kryptow.epub.reader.bookreader.domain.model.ReadingStatusFilter
+import com.kryptow.epub.reader.bookreader.domain.repository.BookRepository
+import com.kryptow.epub.reader.bookreader.domain.repository.PreferencesRepository
+import com.kryptow.epub.reader.bookreader.domain.repository.ReadingStatsRepository
 import com.kryptow.epub.reader.bookreader.domain.usecase.AddBookUseCase
 import com.kryptow.epub.reader.bookreader.domain.usecase.DeleteBookUseCase
 import com.kryptow.epub.reader.bookreader.domain.usecase.GetBooksUseCase
@@ -22,6 +29,8 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
@@ -37,8 +46,26 @@ class LibraryViewModel(
     private val toggleFavoriteUseCase: ToggleFavoriteUseCase,
     private val epubParser: EpubParser,
     private val folderScanner: FolderScanner,
+    private val bookRepository: BookRepository,
+    private val preferencesRepository: PreferencesRepository,
+    readingStatsRepository: ReadingStatsRepository,
     private val context: Context,
 ) : ViewModel() {
+
+    // ─── Sıralama / filtre / istatistik ───────────────────────────────────────
+    val sortOrder: StateFlow<LibrarySortOrder> = preferencesRepository.getLibrarySort()
+        .stateIn(viewModelScope, SharingStarted.Eagerly, LibrarySortOrder.DEFAULT)
+
+    private val _statusFilter = MutableStateFlow(ReadingStatusFilter.ALL)
+    val statusFilter: StateFlow<ReadingStatusFilter> = _statusFilter.asStateFlow()
+
+    val readingStats: StateFlow<ReadingStats> = readingStatsRepository.observeStats()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), ReadingStats())
+
+    val dailyGoalMinutes: StateFlow<Int> = preferencesRepository.getBehaviorPreferences()
+        .map { it.dailyGoalMinutes }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), 0)
+
 
     // ─── Arama sorgusu ────────────────────────────────────────────────────────
     private val _searchQuery = MutableStateFlow("")
@@ -48,8 +75,10 @@ class LibraryViewModel(
     private val _allBooksRaw = getBooksUseCase()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
-    val allBooks: StateFlow<List<Book>> = combine(_allBooksRaw, _searchQuery) { books, q ->
-        books.filtered(q)
+    val allBooks: StateFlow<List<Book>> = combine(
+        _allBooksRaw, _searchQuery, sortOrder, _statusFilter,
+    ) { books, q, sort, status ->
+        LibraryOrganizer.apply(books.filtered(q), sort, status)
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
     val recentBooks: StateFlow<List<Book>> = combine(
@@ -61,7 +90,9 @@ class LibraryViewModel(
     val favoriteBooks: StateFlow<List<Book>> = combine(
         getFavoriteBooksUseCase().stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList()),
         _searchQuery,
-    ) { books, q -> books.filtered(q) }
+        sortOrder,
+        _statusFilter,
+    ) { books, q, sort, status -> LibraryOrganizer.apply(books.filtered(q), sort, status) }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
     // ─── UI durum ─────────────────────────────────────────────────────────────
@@ -89,6 +120,25 @@ class LibraryViewModel(
     fun toggleViewMode() {
         _viewMode.value = if (_viewMode.value == LibraryViewMode.GRID)
             LibraryViewMode.LIST else LibraryViewMode.GRID
+    }
+
+    fun setSortOrder(order: LibrarySortOrder) {
+        viewModelScope.launch { preferencesRepository.setLibrarySort(order) }
+    }
+
+    fun setStatusFilter(filter: ReadingStatusFilter) { _statusFilter.value = filter }
+
+    fun setFinished(book: Book, finished: Boolean) {
+        viewModelScope.launch { bookRepository.setFinished(book.id, finished) }
+    }
+
+    fun setDailyGoal(minutes: Int) {
+        viewModelScope.launch {
+            val current = preferencesRepository.getBehaviorPreferences().first()
+            preferencesRepository.updateBehaviorPreferences(
+                current.copy(dailyGoalMinutes = minutes.coerceIn(0, 600))
+            )
+        }
     }
 
     fun toggleFavorite(book: Book) {

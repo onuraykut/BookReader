@@ -14,6 +14,13 @@ Drop in via JitPack and launch a fully featured reading activity in one call.
 - **Text-to-speech** — chapter playback, Bluetooth & lock-screen controls
 - **In-book search** — full-text across all chapters
 - **Built-in dictionary + translation** — tap any word
+- **Reading stats** — daily goal, streak, last-7-days chart, "min left in chapter" estimate
+  (idle time is not counted)
+- **Library organization** — sort (last read / added / title / author / progress),
+  unread / reading / finished filters, mark as finished, delete confirmation
+- **Reader controls** — volume-key page turning, edge tap zones, in-reader brightness
+- **TTS sleep timer** — 15 / 30 / 45 / 60 min or end of chapter
+- **Highlight export** — Markdown (Obsidian / Notion), CSV (Excel / Sheets) or plain text via share sheet
 - **i18n** — TR / EN / ES
 
 ## Quick Start

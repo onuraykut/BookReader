@@ -1,0 +1,7 @@
+com.kryptow.epub.reader.bookreader.automotive-pngs-0 /home/user/BookReader/automotive/build/generated/res/pngs/debug
+com.kryptow.epub.reader.bookreader.automotive-updated_navigation_xml-1 /home/user/BookReader/automotive/build/generated/updated_navigation_xml/debug
+com.kryptow.epub.reader.bookreader.automotive-packageDebugResources-2 /home/user/BookReader/automotive/build/intermediates/incremental/debug/packageDebugResources/merged.dir
+com.kryptow.epub.reader.bookreader.automotive-packageDebugResources-3 /home/user/BookReader/automotive/build/intermediates/incremental/debug/packageDebugResources/stripped.dir
+com.kryptow.epub.reader.bookreader.automotive-debug-4 /home/user/BookReader/automotive/build/intermediates/merged_res/debug/mergeDebugResources
+com.kryptow.epub.reader.bookreader.automotive-debug-5 /home/user/BookReader/automotive/src/debug/res
+com.kryptow.epub.reader.bookreader.automotive-main-6 /home/user/BookReader/automotive/src/main/res

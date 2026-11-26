@@ -7,10 +7,12 @@ import com.kryptow.epub.reader.bookreader.data.repository.BookRepositoryImpl
 import com.kryptow.epub.reader.bookreader.data.repository.DictionaryRepositoryImpl
 import com.kryptow.epub.reader.bookreader.data.repository.HighlightRepositoryImpl
 import com.kryptow.epub.reader.bookreader.data.repository.PreferencesRepositoryImpl
+import com.kryptow.epub.reader.bookreader.data.repository.ReadingStatsRepositoryImpl
 import com.kryptow.epub.reader.bookreader.domain.repository.BookRepository
 import com.kryptow.epub.reader.bookreader.domain.repository.DictionaryRepository
 import com.kryptow.epub.reader.bookreader.domain.repository.HighlightRepository
 import com.kryptow.epub.reader.bookreader.domain.repository.PreferencesRepository
+import com.kryptow.epub.reader.bookreader.domain.repository.ReadingStatsRepository
 import com.kryptow.epub.reader.bookreader.domain.usecase.AddBookUseCase
 import com.kryptow.epub.reader.bookreader.domain.usecase.AddHighlightUseCase
 import com.kryptow.epub.reader.bookreader.domain.usecase.DeleteBookUseCase
@@ -51,13 +53,14 @@ val databaseModule = module {
             BookDatabase::class.java,
             BookDatabase.DATABASE_NAME,
         )
-            .addMigrations(BookDatabase.MIGRATION_1_2, BookDatabase.MIGRATION_2_3)
+            .addMigrations(*BookDatabase.ALL_MIGRATIONS)
             .build()
     }
     single { get<BookDatabase>().bookDao() }
     single { get<BookDatabase>().bookmarkDao() }
     single { get<BookDatabase>().bookProgressDao() }
     single { get<BookDatabase>().highlightDao() }
+    single { get<BookDatabase>().dailyReadingDao() }
 }
 
 val repositoryModule = module {
@@ -65,6 +68,7 @@ val repositoryModule = module {
     single<PreferencesRepository> { PreferencesRepositoryImpl(get()) }
     single<HighlightRepository> { HighlightRepositoryImpl(get()) }
     single<DictionaryRepository> { DictionaryRepositoryImpl(androidContext()) }
+    single<ReadingStatsRepository> { ReadingStatsRepositoryImpl(get(), get()) }
 }
 
 val useCaseModule = module {
@@ -84,9 +88,9 @@ val useCaseModule = module {
 }
 
 val viewModelModule = module {
-    viewModel { LibraryViewModel(get(), get(), get(), get(), get(), get(), get(), get(), androidContext()) }
-    viewModel { ReaderViewModel(get(), get(), get(), get(), get(), get(), get(), get(), get()) }
+    viewModel { LibraryViewModel(get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), androidContext()) }
+    viewModel { ReaderViewModel(get(), get(), get(), get(), get(), get(), get(), get(), get(), get()) }
     viewModel { SettingsViewModel(get()) }
-    viewModel { (bookId: Long) -> NotesViewModel(bookId, get(), get(), get(), androidContext()) }
+    viewModel { (bookId: Long) -> NotesViewModel(bookId, get(), get(), get(), androidContext(), get()) }
     viewModel { PdfReaderViewModel(androidContext()) }
 }

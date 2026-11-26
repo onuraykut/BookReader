@@ -17,7 +17,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
-import android.content.Intent
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Notes
@@ -26,6 +25,8 @@ import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
@@ -55,7 +56,9 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.res.stringResource
 import com.kryptow.epub.reader.R as LibR
+import com.kryptow.epub.reader.bookreader.domain.export.ExportFormat
 import com.kryptow.epub.reader.bookreader.domain.model.Highlight
+import com.kryptow.epub.reader.bookreader.util.ShareHelper
 import com.kryptow.epub.reader.bookreader.domain.model.HighlightColor
 import org.koin.androidx.compose.koinViewModel
 import org.koin.core.parameter.parametersOf
@@ -85,17 +88,34 @@ fun NotesScreen(
                     }
                 },
                 actions = {
-                    // TXT dışa aktarma / paylaşma
-                    IconButton(onClick = {
-                        val txt = viewModel.exportAsTxt()
-                        val intent = Intent(Intent.ACTION_SEND).apply {
-                            type = "text/plain"
-                            putExtra(Intent.EXTRA_TEXT, txt)
-                            putExtra(Intent.EXTRA_SUBJECT, context.getString(LibR.string.notes_title))
+                    // Dışa aktarma: Markdown / CSV / düz metin → paylaşım menüsü
+                    var exportMenu by remember { mutableStateOf(false) }
+                    Box {
+                        IconButton(
+                            onClick = { exportMenu = true },
+                            enabled = highlights.isNotEmpty() || viewModel.hasHighlights,
+                        ) {
+                            Icon(Icons.Default.Share, stringResource(LibR.string.notes_export))
                         }
-                        context.startActivity(Intent.createChooser(intent, context.getString(LibR.string.notes_title)))
-                    }) {
-                        Icon(Icons.Default.Share, stringResource(LibR.string.notes_title))
+                        DropdownMenu(expanded = exportMenu, onDismissRequest = { exportMenu = false }) {
+                            listOf(
+                                ExportFormat.MARKDOWN to LibR.string.export_markdown,
+                                ExportFormat.CSV to LibR.string.export_csv,
+                                ExportFormat.TEXT to LibR.string.export_text,
+                            ).forEach { (format, label) ->
+                                DropdownMenuItem(
+                                    text = { Text(stringResource(label)) },
+                                    onClick = {
+                                        exportMenu = false
+                                        ShareHelper.share(
+                                            context,
+                                            viewModel.export(format),
+                                            context.getString(LibR.string.notes_export),
+                                        )
+                                    },
+                                )
+                            }
+                        }
                     }
                 },
             )

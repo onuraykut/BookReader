@@ -1,6 +1,8 @@
 package com.kryptow.epub.reader.bookreader.ui.screen.reader
 
 import android.app.Activity
+import android.view.KeyEvent
+import android.view.Window
 import android.view.WindowManager
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
@@ -33,6 +35,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.NavigateBefore
 import androidx.compose.material.icons.automirrored.filled.NavigateNext
 import androidx.compose.material.icons.filled.Bookmark
+import androidx.compose.material.icons.filled.BrightnessMedium
 import androidx.compose.material.icons.filled.BookmarkBorder
 import androidx.compose.material.icons.filled.List
 import androidx.compose.material.icons.filled.Notes
@@ -45,7 +48,10 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Slider
+import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
@@ -57,6 +63,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -69,10 +76,14 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.view.WindowCompat
+import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.WindowInsetsControllerCompat
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.kryptow.epub.reader.R
+import com.kryptow.epub.reader.bookreader.domain.model.ReaderBehaviorPreferences
 import com.kryptow.epub.reader.bookreader.domain.model.ScrollMode
 import com.kryptow.epub.reader.bookreader.ui.reader.BookPaginationIndexer
 import com.kryptow.epub.reader.bookreader.ui.reader.DictionarySheet
@@ -86,6 +97,7 @@ import com.kryptow.epub.reader.bookreader.ui.reader.SearchSheet
 import com.kryptow.epub.reader.bookreader.ui.reader.TocSheet
 import com.kryptow.epub.reader.bookreader.ui.reader.TtsControlBar
 import com.kryptow.epub.reader.bookreader.ui.reader.resolveColors
+import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.launch
 import org.koin.androidx.compose.koinViewModel
 
@@ -113,6 +125,8 @@ fun ReaderScreen(
     val readingSeconds by viewModel.readingSeconds.collectAsState()
     val pagination by viewModel.pagination.collectAsState()
     val search by viewModel.search.collectAsState()
+    val behavior by viewModel.behavior.collectAsState()
+    val chapterMinutesLeft by viewModel.chapterMinutesLeft.collectAsState()
 
     val colors = remember(preferences) { preferences.resolveColors() }
     val scope = rememberCoroutineScope()
@@ -120,15 +134,19 @@ fun ReaderScreen(
     // Sistem barlarını gizle (tam ekran)
     val context = LocalContext.current
     LaunchedEffect(Unit) {
+        // WindowInsetsControllerCompat: API 24-29'da da çalışır (platform API'si 30+ gerektirir)
         (context as? Activity)?.window?.let { window ->
-            window.insetsController?.hide(android.view.WindowInsets.Type.statusBars() or android.view.WindowInsets.Type.navigationBars())
-            window.insetsController?.systemBarsBehavior = android.view.WindowInsetsController.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+            WindowCompat.getInsetsController(window, window.decorView).apply {
+                hide(WindowInsetsCompat.Type.systemBars())
+                systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+            }
         }
     }
     DisposableEffect(Unit) {
         onDispose {
             (context as? Activity)?.window?.let { window ->
-                window.insetsController?.show(android.view.WindowInsets.Type.statusBars() or android.view.WindowInsets.Type.navigationBars())
+                WindowCompat.getInsetsController(window, window.decorView)
+                    .show(WindowInsetsCompat.Type.systemBars())
             }
         }
     }
@@ -165,6 +183,50 @@ fun ReaderScreen(
         if (preferences.keepScreenOn) window?.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         else window?.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         onDispose { window?.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON) }
+    }
+
+    // ─── Parlaklık ────────────────────────────────────────────────────────────
+    // Kaydırma sırasında yalnızca pencereye uygulanır; bırakınca kalıcı olarak kaydedilir.
+    var showBrightness by remember { mutableStateOf(false) }
+    var brightnessDraft by remember { mutableStateOf<Float?>(null) }
+    val effectiveBrightness = brightnessDraft ?: behavior.brightness
+    DisposableEffect(effectiveBrightness) {
+        val window = (context as? Activity)?.window
+        window?.attributes = window?.attributes?.apply {
+            screenBrightness = if (effectiveBrightness < 0f)
+                WindowManager.LayoutParams.BRIGHTNESS_OVERRIDE_NONE
+            else effectiveBrightness
+        }
+        onDispose { }
+    }
+    DisposableEffect(Unit) {
+        onDispose {
+            val window = (context as? Activity)?.window
+            window?.attributes = window?.attributes?.apply {
+                screenBrightness = WindowManager.LayoutParams.BRIGHTNESS_OVERRIDE_NONE
+            }
+        }
+    }
+
+    // ─── Ses tuşlarıyla sayfa çevirme ─────────────────────────────────────────
+    // Window.Callback sarmalanır: odak hangi view'da olursa olsun tuş yakalanır ve
+    // ekrandan çıkınca orijinal callback geri yüklenir. TTS çalarken tuşlar sesi ayarlar.
+    val volumeKeyHandler = rememberUpdatedState<(Boolean) -> Boolean> { isUp ->
+        if (ttsState.playState == com.kryptow.epub.reader.bookreader.ui.reader.TtsPlayState.PLAYING) false
+        else viewModel.onVolumeKey(isUp)
+    }
+    DisposableEffect(context) {
+        val window = (context as? Activity)?.window
+        val original = window?.callback
+        val wrapper = if (window != null && original != null) {
+            VolumeKeyWindowCallback(original) { isUp -> volumeKeyHandler.value(isUp) }
+                .also { window.callback = it }
+        } else null
+        onDispose {
+            if (window != null && wrapper != null && window.callback === wrapper) {
+                window.callback = original
+            }
+        }
     }
 
     // Okuma süresi — lifecycle bazlı
@@ -235,7 +297,10 @@ fun ReaderScreen(
         else -> ""
     }
 
-    val onMiddleTap = { showBars = !showBars }
+    val onMiddleTap = {
+        showBars = !showBars
+        if (!showBars) showBrightness = false
+    }
 
     // ─── Tam ekran içerik + overlay çerçevesi ────────────────────────────────
     Box(
@@ -300,6 +365,9 @@ fun ReaderScreen(
                     // Bu bölüm composition'ı kendi vurgu listesini hesaplar — eski/yeni
                     // composition kısa süre yan yana yaşar, her biri kendi içeriğini görür
                     val chHighlights = highlights.filter { it.page == animatedChapterIdx }
+                    // Geçiş animasyonunda eski bölüm de yaşar — tuş isteklerini yalnızca güncel alsın
+                    val turnRequests = if (animatedChapterIdx == currentChapterIndex)
+                        viewModel.pageTurnRequests else emptyFlow()
 
                     when (preferences.scrollMode) {
                         ScrollMode.VERTICAL -> {
@@ -330,6 +398,9 @@ fun ReaderScreen(
                                 // Dikey mod — bölüm sınırında swipe → bölüm değiştir
                                 onSwipeBeyondEnd = { viewModel.onSwipeBeyondEnd() },
                                 onSwipeBeyondStart = { viewModel.onSwipeBeyondStart() },
+                                onScrollFraction = { f -> viewModel.onVerticalScrollFraction(f) },
+                                tapZonesEnabled = behavior.tapZonesEnabled,
+                                pageTurnRequests = turnRequests,
                             )
                         }
 
@@ -368,6 +439,8 @@ fun ReaderScreen(
                                     onSearchResultCount = { total, current ->
                                         viewModel.onSearchMatchResult(total, current)
                                     },
+                                    tapZonesEnabled = behavior.tapZonesEnabled,
+                                    pageTurnRequests = turnRequests,
                                 )
                             }
                         }
@@ -447,6 +520,8 @@ fun ReaderScreen(
                 },
                 onTts = { viewModel.toggleTts() },
                 onSettings = onSettingsClick,
+                isBrightnessOpen = showBrightness,
+                onBrightness = { showBrightness = !showBrightness },
             )
         }
 
@@ -469,6 +544,7 @@ fun ReaderScreen(
                 onPrev = { viewModel.prevTtsSentence() },
                 onSpeedChange = { speed -> viewModel.setTtsSpeed(speed) },
                 onLangChange = { lang -> viewModel.setTtsLanguage(lang) },
+                onSleepTimerChange = { option -> viewModel.setSleepTimer(option) },
             )
         }
 
@@ -484,6 +560,18 @@ fun ReaderScreen(
                 chapterTitle = uiState.currentChapter?.title ?: "",
                 progressFraction = uiState.progressFraction,
                 readingSeconds = readingSeconds,
+                minutesLeftInChapter = chapterMinutesLeft,
+                showBrightness = showBrightness,
+                brightness = effectiveBrightness,
+                onBrightnessChange = { brightnessDraft = it },
+                onBrightnessChangeFinished = {
+                    brightnessDraft?.let { viewModel.setBrightness(it) }
+                    brightnessDraft = null
+                },
+                onSystemBrightness = {
+                    brightnessDraft = null
+                    viewModel.setBrightness(ReaderBehaviorPreferences.BRIGHTNESS_SYSTEM)
+                },
                 backgroundColor = colors.background.copy(alpha = 0.95f),
                 textColor = colors.text,
                 accentColor = colors.accent,
@@ -605,6 +693,8 @@ private fun ReaderTopBar(
     onBookmark: () -> Unit,
     onSettings: () -> Unit,
     onTts: () -> Unit,
+    isBrightnessOpen: Boolean = false,
+    onBrightness: () -> Unit = {},
 ) {
     Surface(
         modifier = Modifier.fillMaxWidth(),
@@ -709,6 +799,13 @@ private fun ReaderTopBar(
                         tint = if (isTtsActive) accentColor else textColor,
                     )
                 }
+                IconButton(onClick = onBrightness) {
+                    Icon(
+                        Icons.Default.BrightnessMedium,
+                        contentDescription = stringResource(R.string.reader_brightness),
+                        tint = if (isBrightnessOpen) accentColor else textColor,
+                    )
+                }
             }
         }
     }
@@ -750,6 +847,12 @@ private fun ReaderBottomBar(
     chapterTitle: String,      // "V. Advice from a Caterpillar"
     progressFraction: Float,
     readingSeconds: Long,
+    minutesLeftInChapter: Int?,
+    showBrightness: Boolean,
+    brightness: Float,
+    onBrightnessChange: (Float) -> Unit,
+    onBrightnessChangeFinished: () -> Unit,
+    onSystemBrightness: () -> Unit,
     backgroundColor: Color,
     textColor: Color,
     accentColor: Color,
@@ -767,6 +870,16 @@ private fun ReaderBottomBar(
         Column(
             modifier = Modifier.fillMaxWidth(),
         ) {
+            AnimatedVisibility(visible = showBrightness) {
+                BrightnessRow(
+                    brightness = brightness,
+                    textColor = textColor,
+                    accentColor = accentColor,
+                    onChange = onBrightnessChange,
+                    onChangeFinished = onBrightnessChangeFinished,
+                    onSystem = onSystemBrightness,
+                )
+            }
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -817,9 +930,13 @@ private fun ReaderBottomBar(
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                     )
-                    // Okuma süresi
+                    // Okuma süresi • bölümde kalan tahmini süre
+                    val timeLeft = minutesLeftInChapter
+                        ?.takeIf { it > 0 }
+                        ?.let { stringResource(R.string.reader_minutes_left_chapter, it) }
                     Text(
-                        text = formatReadingTime(readingSeconds),
+                        text = listOfNotNull(formatReadingTime(readingSeconds), timeLeft)
+                            .joinToString("  •  "),
                         style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
                         color = textColor.copy(alpha = 0.45f),
                         maxLines = 1,
@@ -851,6 +968,84 @@ private fun ReaderBottomBar(
                 trackColor = accentColor.copy(alpha = 0.15f),
             )
         }
+    }
+}
+
+@Composable
+private fun BrightnessRow(
+    brightness: Float,
+    textColor: Color,
+    accentColor: Color,
+    onChange: (Float) -> Unit,
+    onChangeFinished: () -> Unit,
+    onSystem: () -> Unit,
+) {
+    val isSystem = brightness < 0f
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(start = 16.dp, end = 12.dp, top = 6.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Icon(
+            Icons.Default.BrightnessMedium,
+            contentDescription = stringResource(R.string.reader_brightness),
+            tint = textColor.copy(alpha = 0.7f),
+            modifier = Modifier.size(20.dp),
+        )
+        Spacer(Modifier.width(8.dp))
+        Slider(
+            value = if (isSystem) 0.5f else brightness,
+            onValueChange = { onChange(it.coerceAtLeast(ReaderBehaviorPreferences.MIN_BRIGHTNESS)) },
+            onValueChangeFinished = onChangeFinished,
+            valueRange = ReaderBehaviorPreferences.MIN_BRIGHTNESS..1f,
+            colors = SliderDefaults.colors(
+                thumbColor = accentColor,
+                activeTrackColor = if (isSystem) accentColor.copy(alpha = 0.35f) else accentColor,
+                inactiveTrackColor = accentColor.copy(alpha = 0.15f),
+            ),
+            modifier = Modifier.weight(1f),
+        )
+        Spacer(Modifier.width(8.dp))
+        FilterChip(
+            selected = isSystem,
+            onClick = onSystem,
+            label = { Text(stringResource(R.string.reader_brightness_system), color = textColor) },
+        )
+    }
+}
+
+/**
+ * Ses tuşlarını sayfa çevirme için yakalayan [Window.Callback] sarmalayıcısı.
+ * [onVolumeKey] true dönerse tuş tüketilir; false dönerse sistem sesi ayarlar.
+ * Basılı tutma tekrarları (repeatCount > 0) yeni sayfa çevirmez ama yine tüketilir.
+ */
+internal class VolumeKeyWindowCallback(
+    private val delegate: Window.Callback,
+    private val onVolumeKey: (isVolumeUp: Boolean) -> Boolean,
+) : Window.Callback by delegate {
+
+    private var consumingKey: Int? = null
+
+    override fun dispatchKeyEvent(event: KeyEvent): Boolean {
+        val code = event.keyCode
+        if (code == KeyEvent.KEYCODE_VOLUME_UP || code == KeyEvent.KEYCODE_VOLUME_DOWN) {
+            when (event.action) {
+                KeyEvent.ACTION_DOWN -> {
+                    if (event.repeatCount > 0) {
+                        if (consumingKey == code) return true
+                    } else if (onVolumeKey(code == KeyEvent.KEYCODE_VOLUME_UP)) {
+                        consumingKey = code
+                        return true
+                    }
+                }
+                KeyEvent.ACTION_UP -> if (consumingKey == code) {
+                    consumingKey = null
+                    return true
+                }
+            }
+        }
+        return delegate.dispatchKeyEvent(event)
     }
 }
 
