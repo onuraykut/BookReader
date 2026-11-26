@@ -1,2 +1,0 @@
-int string app_name 0x0
-int xml automotive_app_desc 0x0
