@@ -2,6 +2,7 @@ package com.kryptow.epub.reader.bookreader.epub
 
 import android.content.Context
 import android.net.Uri
+import androidx.annotation.WorkerThread
 import androidx.documentfile.provider.DocumentFile
 
 /**
@@ -10,8 +11,12 @@ import androidx.documentfile.provider.DocumentFile
  */
 class FolderScanner(private val context: Context) {
 
-    /** @return Klasör ağacı içindeki tüm EPUB dosyalarının Uri listesi. */
-    fun scanForEpubs(treeUri: Uri): List<Uri> {
+    /**
+     * Klasör ağacındaki tüm EPUB ve PDF dosyaları.
+     * Engelleyici IPC çağrıları yapar — arka plan thread'inde çağrılmalıdır.
+     */
+    @WorkerThread
+    fun scanForBooks(treeUri: Uri): List<Uri> {
         val root = DocumentFile.fromTreeUri(context, treeUri) ?: return emptyList()
         val results = mutableListOf<Uri>()
         collect(root, results)
@@ -23,9 +28,19 @@ class FolderScanner(private val context: Context) {
         for (child in dir.listFiles()) {
             when {
                 child.isDirectory -> collect(child, out)
-                child.isFile && child.isEpub() -> out.add(child.uri)
+                child.isFile && (child.isEpub() || child.isPdf()) -> out.add(child.uri)
             }
         }
+    }
+
+    /** Geriye dönük uyumluluk — artık PDF'leri de döndürür. */
+    @Deprecated("PDF'leri de içerir", ReplaceWith("scanForBooks(treeUri)"))
+    @WorkerThread
+    fun scanForEpubs(treeUri: Uri): List<Uri> = scanForBooks(treeUri)
+
+    private fun DocumentFile.isPdf(): Boolean {
+        val name = name?.lowercase() ?: return false
+        return name.endsWith(".pdf") || type?.lowercase() == "application/pdf"
     }
 
     private fun DocumentFile.isEpub(): Boolean {

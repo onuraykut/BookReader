@@ -113,3 +113,8 @@ afterEvaluate {
         }
     }
 }
+
+// Room şema JSON'larını sürüm kontrolüne al — migration'lar şemaya karşı doğrulanabilsin.
+ksp {
+    arg("room.schemaLocation", "$projectDir/schemas")
+}

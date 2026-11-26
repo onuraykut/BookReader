@@ -11,11 +11,13 @@ import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import com.kryptow.epub.reader.bookreader.domain.model.DayTheme
 import com.kryptow.epub.reader.bookreader.domain.model.NightTheme
+import com.kryptow.epub.reader.bookreader.domain.model.ReaderBehaviorPreferences
 import com.kryptow.epub.reader.bookreader.domain.model.ReadingFontFamily
 import com.kryptow.epub.reader.bookreader.domain.model.ReadingPreferences
 import com.kryptow.epub.reader.bookreader.domain.model.ScrollMode
 import com.kryptow.epub.reader.bookreader.domain.model.ThemeMode
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 
 private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "reading_preferences")
@@ -35,6 +37,12 @@ class UserPreferencesDataStore(private val context: Context) {
         val KEEP_SCREEN_ON = booleanPreferencesKey("keep_screen_on")
         val SCROLL_MODE = stringPreferencesKey("scroll_mode")
         val ONBOARDING_SHOWN = booleanPreferencesKey("onboarding_shown")
+        val TAP_ZONES = booleanPreferencesKey("tap_zones_enabled")
+        val VOLUME_KEYS = booleanPreferencesKey("volume_keys_enabled")
+        val VOLUME_KEYS_INVERTED = booleanPreferencesKey("volume_keys_inverted")
+        val BRIGHTNESS = floatPreferencesKey("reader_brightness")
+        val DAILY_GOAL_MINUTES = intPreferencesKey("daily_goal_minutes")
+        val LIBRARY_SORT = stringPreferencesKey("library_sort")
     }
 
     val readingPreferences: Flow<ReadingPreferences> = context.dataStore.data.map { p ->
@@ -51,6 +59,35 @@ class UserPreferencesDataStore(private val context: Context) {
             keepScreenOn = p[Keys.KEEP_SCREEN_ON] ?: true,
             scrollMode = enumOrDefault(p[Keys.SCROLL_MODE], ScrollMode.HORIZONTAL_PAGE),
         )
+    }
+
+    val behaviorPreferences: Flow<ReaderBehaviorPreferences> = context.dataStore.data.map { p ->
+        val defaults = ReaderBehaviorPreferences()
+        ReaderBehaviorPreferences(
+            tapZonesEnabled = p[Keys.TAP_ZONES] ?: defaults.tapZonesEnabled,
+            volumeKeysEnabled = p[Keys.VOLUME_KEYS] ?: defaults.volumeKeysEnabled,
+            volumeKeysInverted = p[Keys.VOLUME_KEYS_INVERTED] ?: defaults.volumeKeysInverted,
+            brightness = p[Keys.BRIGHTNESS] ?: defaults.brightness,
+            dailyGoalMinutes = p[Keys.DAILY_GOAL_MINUTES] ?: defaults.dailyGoalMinutes,
+        )
+    }.distinctUntilChanged()
+
+    suspend fun updateBehaviorPreferences(prefs: ReaderBehaviorPreferences) {
+        context.dataStore.edit { p ->
+            p[Keys.TAP_ZONES] = prefs.tapZonesEnabled
+            p[Keys.VOLUME_KEYS] = prefs.volumeKeysEnabled
+            p[Keys.VOLUME_KEYS_INVERTED] = prefs.volumeKeysInverted
+            p[Keys.BRIGHTNESS] = prefs.brightness
+            p[Keys.DAILY_GOAL_MINUTES] = prefs.dailyGoalMinutes
+        }
+    }
+
+    /** Kütüphane sıralama anahtarı (enum adı); ayarlanmamışsa null. */
+    val librarySort: Flow<String?> = context.dataStore.data.map { it[Keys.LIBRARY_SORT] }
+        .distinctUntilChanged()
+
+    suspend fun setLibrarySort(name: String) {
+        context.dataStore.edit { it[Keys.LIBRARY_SORT] = name }
     }
 
     val onboardingShown: Flow<Boolean> = context.dataStore.data.map { p ->

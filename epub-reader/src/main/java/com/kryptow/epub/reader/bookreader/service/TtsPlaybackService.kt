@@ -3,6 +3,7 @@ package com.kryptow.epub.reader.bookreader.service
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.content.Intent
+import android.content.pm.ServiceInfo
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
@@ -12,6 +13,7 @@ import android.support.v4.media.MediaMetadataCompat
 import android.support.v4.media.session.MediaSessionCompat
 import android.support.v4.media.session.PlaybackStateCompat
 import androidx.core.app.NotificationCompat
+import androidx.core.app.ServiceCompat
 import androidx.media.MediaBrowserServiceCompat
 import androidx.media.app.NotificationCompat as MediaNotificationCompat
 import androidx.media.session.MediaButtonReceiver
@@ -35,6 +37,7 @@ class TtsPlaybackService : MediaBrowserServiceCompat() {
         const val BOOK_ID_PREFIX = "book_"
         const val CHAPTER_ID_SEPARATOR = "/chapter_"
         const val NOTIFICATION_ID = 1001
+        private const val TAG = "TtsPlaybackService"
         const val CHANNEL_ID = "tts_playback_ch"
 
         const val ACTION_PLAY_BOOK_CHAPTER = "com.kryptow.epub.reader.ACTION_PLAY_BOOK_CHAPTER"
@@ -82,6 +85,10 @@ class TtsPlaybackService : MediaBrowserServiceCompat() {
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        // startForegroundService() ile başlatıldıysak 5 sn içinde startForeground() şart;
+        // aksi halde sistem ForegroundServiceDidNotStartInTimeException ile uygulamayı çökertir.
+        // EPUB ayrıştırma bu süreyi aşabileceği için ön plana hemen geçiyoruz.
+        if (intent != null) ensureForeground()
         MediaButtonReceiver.handleIntent(mediaSession, intent)
         when (intent?.action) {
             ACTION_PLAY_BOOK_CHAPTER -> {
@@ -164,19 +171,21 @@ class TtsPlaybackService : MediaBrowserServiceCompat() {
     // ── Oynatma ───────────────────────────────────────────────────────────────
 
     private suspend fun loadAndPlay(bookId: Long, chapterIndex: Int) {
-        val book = bookRepository.getBookById(bookId) ?: return
+        val book = bookRepository.getBookById(bookId) ?: return stopPlaybackService()
         currentBookId = bookId
         currentChapterIndex = chapterIndex
 
         val epub = try {
             epubParser.parse(Uri.parse(book.filePath))
         } catch (e: Exception) {
-            return
+            return stopPlaybackService()
+        } catch (e: OutOfMemoryError) {
+            return stopPlaybackService()
         }
         currentEpub = epub
 
-        val chapter = epub.chapters.getOrNull(chapterIndex) ?: return
-        ttsManager.setContent(chapter.content)
+        val chapter = epub.chapters.getOrNull(chapterIndex) ?: return stopPlaybackService()
+        ttsManager.setContentAsync(chapter.content)
 
         val chapterTitle = chapter.title.ifBlank { getString(R.string.chapter_format, chapterIndex + 1) }
         mediaSession.setMetadata(
@@ -200,7 +209,7 @@ class TtsPlaybackService : MediaBrowserServiceCompat() {
             )
         )
 
-        startForeground(NOTIFICATION_ID, buildNotification())
+        ensureForeground()
         ttsManager.play()
         setPlaybackState(PlaybackStateCompat.STATE_PLAYING)
     }
@@ -281,6 +290,31 @@ class TtsPlaybackService : MediaBrowserServiceCompat() {
             .build()
     }
 
+    /**
+     * Ön plana geç (tekrar çağrılması güvenli — bildirimi günceller).
+     * Android 12+ arka plandan başlatma kısıtında exception fırlatabilir; o durumda
+     * çökmek yerine oynatmayı ön plan olmadan sürdürürüz.
+     */
+    private fun ensureForeground() {
+        try {
+            ServiceCompat.startForeground(
+                this,
+                NOTIFICATION_ID,
+                buildNotification(),
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q)
+                    ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK else 0,
+            )
+        } catch (e: Exception) {
+            // ForegroundServiceStartNotAllowedException (API 31+) / SecurityException
+            android.util.Log.w(TAG, "startForeground failed", e)
+        }
+    }
+
+    private fun stopPlaybackService() {
+        runCatching { ServiceCompat.stopForeground(this, ServiceCompat.STOP_FOREGROUND_REMOVE) }
+        stopSelf()
+    }
+
     private fun createNotificationChannel() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val channel = NotificationChannel(
@@ -298,7 +332,7 @@ class TtsPlaybackService : MediaBrowserServiceCompat() {
             ttsManager.resume()
             TtsPlaybackState.update(TtsPlaybackState.current.value.copy(isPlaying = true))
             setPlaybackState(PlaybackStateCompat.STATE_PLAYING)
-            startForeground(NOTIFICATION_ID, buildNotification())
+            ensureForeground()
         }
 
         override fun onPause() {
@@ -311,8 +345,7 @@ class TtsPlaybackService : MediaBrowserServiceCompat() {
             ttsManager.stop()
             TtsPlaybackState.update(TtsPlaybackState.current.value.copy(isPlaying = false))
             setPlaybackState(PlaybackStateCompat.STATE_STOPPED)
-            stopForeground(STOP_FOREGROUND_REMOVE)
-            stopSelf()
+            stopPlaybackService()
         }
 
         override fun onSkipToNext() = advanceChapter(+1)

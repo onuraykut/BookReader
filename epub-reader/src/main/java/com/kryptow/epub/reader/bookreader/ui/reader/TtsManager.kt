@@ -2,8 +2,12 @@ package com.kryptow.epub.reader.bookreader.ui.reader
 
 import android.content.Context
 import android.speech.tts.TextToSpeech
+import android.os.Handler
+import android.os.Looper
 import android.speech.tts.UtteranceProgressListener
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import java.util.Locale
@@ -33,7 +37,9 @@ class TtsManager(context: Context) {
     private val _totalSentences = MutableStateFlow(0)
     val totalSentences: StateFlow<Int> = _totalSentences.asStateFlow()
 
+    @Volatile
     private var sentences: List<String> = emptyList()
+    private val mainHandler = Handler(Looper.getMainLooper())
     private var speed: Float = 1.0f
     private var locale: Locale = Locale.ENGLISH
 
@@ -62,7 +68,9 @@ class TtsManager(context: Context) {
                     speakCurrent()
                 } else {
                     _playState.value = TtsPlayState.IDLE
-                    onChapterComplete?.invoke()
+                    // Listener binder thread'inde çalışır; dinleyiciler UI/MediaSession'a
+                    // dokunduğu için ana thread'e aktar.
+                    mainHandler.post { onChapterComplete?.invoke() }
                 }
             }
             @Deprecated("Deprecated in Java")
@@ -75,10 +83,24 @@ class TtsManager(context: Context) {
     // ─── İçerik ──────────────────────────────────────────────────────────────
 
     fun setContent(html: String) {
+        setSentences(extractSentences(html))
+    }
+
+    /**
+     * [setContent]'in ANR-güvenli sürümü: büyük bölümlerde (ve inline base64 görsel içeren
+     * HTML'de) regex temizliği ana thread'i saniyelerce bloklayabilir; burada
+     * [Dispatchers.Default]'ta yapılır.
+     */
+    suspend fun setContentAsync(html: String) {
+        val list = withContext(Dispatchers.Default) { extractSentences(html) }
+        setSentences(list)
+    }
+
+    private fun setSentences(list: List<String>) {
         tts?.stop()
         _playState.value = TtsPlayState.IDLE
-        sentences = extractSentences(html)
-        _totalSentences.value = sentences.size
+        sentences = list
+        _totalSentences.value = list.size
         _currentIndex.value = 0
     }
 
@@ -153,15 +175,22 @@ class TtsManager(context: Context) {
     }
 
     fun destroy() {
-        tts?.shutdown()
+        mainHandler.removeCallbacksAndMessages(null)
+        onChapterComplete = null
+        runCatching { tts?.stop() }
+        runCatching { tts?.shutdown() }
         tts = null
     }
 
     // ─── HTML → Cümle listesi ─────────────────────────────────────────────────
 
     companion object {
+        private val DATA_URI_REGEX = Regex("""data:[^"'\s>]+""")
+
         fun extractSentences(html: String): List<String> {
             val text = html
+                // Inline base64 görselleri önce at — MB'larca veriyi diğer regex'lere sokmayalım
+                .replace(DATA_URI_REGEX, "")
                 .replace(Regex("<br\\s*/?>", RegexOption.IGNORE_CASE), " ")
                 .replace(Regex("</(p|div|li|h[1-6]|blockquote|tr)>", RegexOption.IGNORE_CASE), " ")
                 .replace(Regex("<[^>]+>"), "")

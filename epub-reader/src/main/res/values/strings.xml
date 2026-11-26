@@ -107,6 +107,8 @@
     <string name="color_blue">Mavi</string>
     <string name="color_red">Kırmızı</string>
     <string name="color_orange">Turuncu</string>
+    <string name="color_pink">Pembe</string>
+    <string name="color_purple">Mor</string>
 
     <!-- ─── Library ──────────────────────────────────────────────────────── -->
     <string name="library_title">Kütüphane</string>
@@ -173,4 +175,59 @@
     <string name="car_chapters_count">%1$d bölüm</string>
     <string name="car_progress_format">%%%1$d okundu</string>
     <string name="car_now_playing">Şimdi Oynatılıyor</string>
+
+    <!-- ─── Faz 1: istatistik, kütüphane, kontroller, dışa aktarma ─── -->
+    <string name="reader_minutes_left_chapter">Bölümde %1$d dk kaldı</string>
+    <string name="reader_brightness">Parlaklık</string>
+    <string name="reader_brightness_system">Sistem</string>
+    <string name="tts_sleep_timer">Uyku zamanlayıcısı</string>
+    <string name="tts_sleep_end_of_chapter">Bölüm sonunda</string>
+    <string name="off">Kapalı</string>
+    <string name="minutes_short">%1$d dk</string>
+    <string name="hours_minutes_short">%1$d sa %2$d dk</string>
+    <string name="settings_section_controls">Kontroller</string>
+    <string name="settings_tap_zones">Kenarlara dokunarak sayfa çevir</string>
+    <string name="settings_volume_keys">Ses tuşlarıyla sayfa çevir</string>
+    <string name="settings_volume_keys_inverted">Ses tuşu yönünü ters çevir</string>
+    <string name="settings_daily_goal">Günlük okuma hedefi: %1$s</string>
+    <string name="library_sort">Sırala</string>
+    <string name="sort_last_read">Son okunan</string>
+    <string name="sort_date_added">Eklenme tarihi</string>
+    <string name="sort_title">Başlık</string>
+    <string name="sort_author">Yazar</string>
+    <string name="sort_progress">İlerleme</string>
+    <string name="filter_unread">Okunmadı</string>
+    <string name="filter_reading">Okunuyor</string>
+    <string name="filter_finished">Bitti</string>
+    <string name="book_mark_finished">Bitti olarak işaretle</string>
+    <string name="book_mark_unfinished">Bitmedi olarak işaretle</string>
+    <string name="book_favorite_add">Favorilere ekle</string>
+    <string name="book_favorite_remove">Favorilerden çıkar</string>
+    <string name="book_remove">Kütüphaneden kaldır</string>
+    <string name="book_remove_desc">Dosyanın kendisi silinmez, ancak bu kitaba ait vurgular, notlar ve yer imleri silinir.</string>
+    <string name="book_remove_confirm">Kaldır</string>
+    <string name="stats_today">Bugün</string>
+    <string name="stats_goal_progress">%1$d / %2$d dk</string>
+    <string name="stats_goal_reached">Günlük hedef tamamlandı</string>
+    <string name="stats_total">Toplam: %1$s</string>
+    <string name="stats_daily_goal">Günlük hedef</string>
+    <string name="stats_last_7_days">Son 7 gün</string>
+    <string name="stats_no_streak">Bugün okuyarak seri başlat</string>
+    <string name="notes_export">Dışa aktar</string>
+    <string name="export_markdown">Markdown (Obsidian, Notion)</string>
+    <string name="export_csv">CSV (Excel, Sheets)</string>
+    <string name="export_text">Düz metin</string>
+    <string name="export_note_label">Not</string>
+    <string name="export_color_label">Renk</string>
+    <string name="export_date_label">Tarih</string>
+    <string name="export_chapter_label">Bölüm</string>
+    <string name="export_text_label">Metin</string>
+    <string name="library_no_match">Bu filtreye uyan kitap yok</string>
+    <string name="stats_goal_dialog_desc">Her gün okumak istediğin süreyi seç. En az 1 dakika okuduğun her gün serine eklenir.</string>
+    <plurals name="stats_streak_days">
+        <item quantity="one">%d gün üst üste</item>
+        <item quantity="other">%d gün üst üste</item>
+    </plurals>
+    <string name="error_book_too_large">Bu kitap cihaz belleğine sığmayacak kadar büyük.</string>
+    <string name="error_open_failed">Kitap açılamadı. Dosya taşınmış ya da silinmiş olabilir.</string>
 </resources>

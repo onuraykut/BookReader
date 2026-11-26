@@ -16,6 +16,7 @@ interface BookRepository {
     fun getRecentBooks(): Flow<List<Book>>
     fun getFavoriteBooks(): Flow<List<Book>>
     suspend fun toggleFavorite(bookId: Long, isFavorite: Boolean)
+    suspend fun setFinished(bookId: Long, isFinished: Boolean)
 
     fun getBookmarksForBook(bookId: Long): Flow<List<Bookmark>>
     suspend fun addBookmark(bookmark: Bookmark): Long

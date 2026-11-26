@@ -92,7 +92,8 @@ class BookDetailCarScreen(
             putExtra(TtsPlaybackService.EXTRA_BOOK_ID, book.id)
             putExtra(TtsPlaybackService.EXTRA_CHAPTER_INDEX, chapterIndex)
         }
-        carContext.startForegroundService(intent)
+        // ContextCompat: API 24-25 için startService'e düşer
+        androidx.core.content.ContextCompat.startForegroundService(carContext, intent)
         screenManager.push(PlayerCarScreen(carContext))
     }
 }

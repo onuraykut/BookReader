@@ -107,6 +107,8 @@
     <string name="color_blue">Azul</string>
     <string name="color_red">Rojo</string>
     <string name="color_orange">Naranja</string>
+    <string name="color_pink">Rosa</string>
+    <string name="color_purple">Morado</string>
 
     <!-- ─── Biblioteca ───────────────────────────────────────────────────── -->
     <string name="library_title">Biblioteca</string>
@@ -173,4 +175,59 @@
     <string name="car_chapters_count">%1$d capítulos</string>
     <string name="car_progress_format">%1$d%% leído</string>
     <string name="car_now_playing">Reproduciendo ahora</string>
+
+    <!-- ─── Faz 1: istatistik, kütüphane, kontroller, dışa aktarma ─── -->
+    <string name="reader_minutes_left_chapter">Quedan %1$d min en el capítulo</string>
+    <string name="reader_brightness">Brillo</string>
+    <string name="reader_brightness_system">Sistema</string>
+    <string name="tts_sleep_timer">Temporizador</string>
+    <string name="tts_sleep_end_of_chapter">Al final del capítulo</string>
+    <string name="off">Desactivado</string>
+    <string name="minutes_short">%1$d min</string>
+    <string name="hours_minutes_short">%1$d h %2$d min</string>
+    <string name="settings_section_controls">Controles</string>
+    <string name="settings_tap_zones">Toca los bordes para pasar página</string>
+    <string name="settings_volume_keys">Pasar página con las teclas de volumen</string>
+    <string name="settings_volume_keys_inverted">Invertir dirección de las teclas de volumen</string>
+    <string name="settings_daily_goal">Objetivo diario de lectura: %1$s</string>
+    <string name="library_sort">Ordenar</string>
+    <string name="sort_last_read">Última lectura</string>
+    <string name="sort_date_added">Fecha de adición</string>
+    <string name="sort_title">Título</string>
+    <string name="sort_author">Autor</string>
+    <string name="sort_progress">Progreso</string>
+    <string name="filter_unread">Sin leer</string>
+    <string name="filter_reading">Leyendo</string>
+    <string name="filter_finished">Terminado</string>
+    <string name="book_mark_finished">Marcar como terminado</string>
+    <string name="book_mark_unfinished">Marcar como no terminado</string>
+    <string name="book_favorite_add">Añadir a favoritos</string>
+    <string name="book_favorite_remove">Quitar de favoritos</string>
+    <string name="book_remove">Quitar de la biblioteca</string>
+    <string name="book_remove_desc">El archivo no se elimina, pero se borrarán los resaltados, notas y marcadores de este libro.</string>
+    <string name="book_remove_confirm">Quitar</string>
+    <string name="stats_today">Hoy</string>
+    <string name="stats_goal_progress">%1$d / %2$d min</string>
+    <string name="stats_goal_reached">Objetivo diario cumplido</string>
+    <string name="stats_total">Total: %1$s</string>
+    <string name="stats_daily_goal">Objetivo diario</string>
+    <string name="stats_last_7_days">Últimos 7 días</string>
+    <string name="stats_no_streak">Lee hoy para empezar una racha</string>
+    <string name="notes_export">Exportar</string>
+    <string name="export_markdown">Markdown (Obsidian, Notion)</string>
+    <string name="export_csv">CSV (Excel, Sheets)</string>
+    <string name="export_text">Texto sin formato</string>
+    <string name="export_note_label">Nota</string>
+    <string name="export_color_label">Color</string>
+    <string name="export_date_label">Fecha</string>
+    <string name="export_chapter_label">Capítulo</string>
+    <string name="export_text_label">Texto</string>
+    <string name="library_no_match">Ningún libro coincide con este filtro</string>
+    <string name="stats_goal_dialog_desc">Elige cuánto quieres leer cada día. Cada día que leas al menos 1 minuto suma a tu racha.</string>
+    <plurals name="stats_streak_days">
+        <item quantity="one">%d día seguido</item>
+        <item quantity="other">%d días seguidos</item>
+    </plurals>
+    <string name="error_book_too_large">Este libro es demasiado grande para abrirlo en este dispositivo.</string>
+    <string name="error_open_failed">No se pudo abrir el libro. Es posible que el archivo se haya movido o eliminado.</string>
 </resources>

@@ -27,6 +27,9 @@ class BookRepositoryImpl(
     override suspend fun toggleFavorite(bookId: Long, isFavorite: Boolean) =
         bookDao.setFavorite(bookId, isFavorite)
 
+    override suspend fun setFinished(bookId: Long, isFinished: Boolean) =
+        bookDao.setFinished(bookId, isFinished)
+
     override suspend fun getBookById(id: Long): Book? =
         bookDao.getBookById(id)?.toDomain()
 

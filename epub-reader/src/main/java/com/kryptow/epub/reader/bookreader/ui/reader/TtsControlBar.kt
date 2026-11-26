@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Bedtime
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.SkipNext
@@ -38,6 +39,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.kryptow.epub.reader.R
+import com.kryptow.epub.reader.bookreader.ui.screen.reader.SleepTimerOption
 import com.kryptow.epub.reader.bookreader.ui.screen.reader.TtsUiState
 
 private val TTS_SPEEDS = listOf(0.5f, 0.75f, 1.0f, 1.25f, 1.5f, 2.0f)
@@ -68,6 +70,7 @@ fun TtsControlBar(
     onSpeedChange: (Float) -> Unit,
     onLangChange: (String) -> Unit,
     modifier: Modifier = Modifier,
+    onSleepTimerChange: (SleepTimerOption) -> Unit = {},
 ) {
     Surface(
         modifier = modifier.fillMaxWidth(),
@@ -126,12 +129,20 @@ fun TtsControlBar(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween,
             ) {
-                // Hız seçici
-                TtsSpeedPicker(
-                    current = state.speed,
-                    accentColor = accentColor,
-                    onSelect = onSpeedChange,
-                )
+                // Hız + uyku zamanlayıcısı
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    TtsSpeedPicker(
+                        current = state.speed,
+                        accentColor = accentColor,
+                        onSelect = onSpeedChange,
+                    )
+                    TtsSleepTimerPicker(
+                        state = state,
+                        textColor = textColor,
+                        accentColor = accentColor,
+                        onSelect = onSleepTimerChange,
+                    )
+                }
 
                 // Oynatma butonları
                 Row(verticalAlignment = Alignment.CenterVertically) {
@@ -206,6 +217,57 @@ private fun TtsSpeedPicker(current: Float, accentColor: Color, onSelect: (Float)
                 DropdownMenuItem(
                     text = { Text("${s.toSpeedLabel()}x") },
                     onClick = { onSelect(s); expanded = false },
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun TtsSleepTimerPicker(
+    state: TtsUiState,
+    textColor: Color,
+    accentColor: Color,
+    onSelect: (SleepTimerOption) -> Unit,
+) {
+    var expanded by remember { mutableStateOf(false) }
+    val active = state.sleepTimer != SleepTimerOption.OFF
+    Box {
+        TextButton(
+            onClick = { expanded = true },
+            contentPadding = PaddingValues(horizontal = 6.dp, vertical = 4.dp),
+        ) {
+            Icon(
+                Icons.Default.Bedtime,
+                contentDescription = stringResource(R.string.tts_sleep_timer),
+                tint = if (active) accentColor else textColor.copy(alpha = 0.55f),
+                modifier = Modifier.size(18.dp),
+            )
+            val remaining = state.sleepTimerRemainingSeconds
+            val label = when {
+                remaining != null -> "%d:%02d".format(remaining / 60, remaining % 60)
+                state.sleepTimer == SleepTimerOption.END_OF_CHAPTER -> "§"
+                else -> null
+            }
+            if (label != null) {
+                Spacer(Modifier.size(4.dp))
+                Text(text = label, color = accentColor, fontSize = 12.sp)
+            }
+        }
+        DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+            SleepTimerOption.entries.forEach { option ->
+                DropdownMenuItem(
+                    text = {
+                        Text(
+                            when (option) {
+                                SleepTimerOption.OFF -> stringResource(R.string.off)
+                                SleepTimerOption.END_OF_CHAPTER ->
+                                    stringResource(R.string.tts_sleep_end_of_chapter)
+                                else -> stringResource(R.string.minutes_short, option.minutes)
+                            }
+                        )
+                    },
+                    onClick = { onSelect(option); expanded = false },
                 )
             }
         }

@@ -26,6 +26,10 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import kotlin.math.roundToInt
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
@@ -45,6 +49,7 @@ fun SettingsScreen(
     viewModel: SettingsViewModel = koinViewModel(),
 ) {
     val prefs by viewModel.preferences.collectAsState()
+    val behavior by viewModel.behavior.collectAsState()
 
     Scaffold(
         topBar = {
@@ -241,8 +246,68 @@ fun SettingsScreen(
                 )
             }
 
+            Spacer(Modifier.height(28.dp))
+
+            Section(stringResource(R.string.settings_section_controls)) {
+                SwitchRow(
+                    label = stringResource(R.string.settings_tap_zones),
+                    checked = behavior.tapZonesEnabled,
+                    onCheckedChange = { viewModel.updateBehavior(behavior.copy(tapZonesEnabled = it)) },
+                )
+                SwitchRow(
+                    label = stringResource(R.string.settings_volume_keys),
+                    checked = behavior.volumeKeysEnabled,
+                    onCheckedChange = { viewModel.updateBehavior(behavior.copy(volumeKeysEnabled = it)) },
+                )
+                if (behavior.volumeKeysEnabled) {
+                    SwitchRow(
+                        label = stringResource(R.string.settings_volume_keys_inverted),
+                        checked = behavior.volumeKeysInverted,
+                        onCheckedChange = { viewModel.updateBehavior(behavior.copy(volumeKeysInverted = it)) },
+                    )
+                }
+            }
+
+            Spacer(Modifier.height(20.dp))
+
+            // Günlük hedef: 0 (kapalı) … 120 dk, 5'er dakika
+            var goalDraft by remember(behavior.dailyGoalMinutes) {
+                mutableFloatStateOf(behavior.dailyGoalMinutes.toFloat())
+            }
+            val goalLabel = goalDraft.toInt().let {
+                if (it <= 0) stringResource(R.string.off) else stringResource(R.string.minutes_short, it)
+            }
+            Section(stringResource(R.string.settings_daily_goal, goalLabel)) {
+                Slider(
+                    value = goalDraft,
+                    onValueChange = { goalDraft = (it / 5f).roundToInt() * 5f },
+                    onValueChangeFinished = {
+                        viewModel.updateBehavior(behavior.copy(dailyGoalMinutes = goalDraft.toInt()))
+                    },
+                    valueRange = 0f..120f,
+                    steps = 23,
+                )
+            }
+
             Spacer(Modifier.height(40.dp))
         }
+    }
+}
+
+@Composable
+private fun SwitchRow(label: String, checked: Boolean, onCheckedChange: (Boolean) -> Unit) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 4.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.bodyLarge,
+            modifier = Modifier.weight(1f),
+        )
+        Switch(checked = checked, onCheckedChange = onCheckedChange)
     }
 }
 

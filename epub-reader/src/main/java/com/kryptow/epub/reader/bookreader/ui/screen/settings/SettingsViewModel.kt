@@ -2,6 +2,7 @@ package com.kryptow.epub.reader.bookreader.ui.screen.settings
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.kryptow.epub.reader.bookreader.domain.model.ReaderBehaviorPreferences
 import com.kryptow.epub.reader.bookreader.domain.model.ReadingPreferences
 import com.kryptow.epub.reader.bookreader.domain.repository.PreferencesRepository
 import kotlinx.coroutines.flow.SharingStarted
@@ -16,6 +17,14 @@ class SettingsViewModel(
     val preferences: StateFlow<ReadingPreferences> = preferencesRepository
         .getReadingPreferences()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), ReadingPreferences())
+
+    val behavior: StateFlow<ReaderBehaviorPreferences> = preferencesRepository
+        .getBehaviorPreferences()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), ReaderBehaviorPreferences())
+
+    fun updateBehavior(updated: ReaderBehaviorPreferences) {
+        viewModelScope.launch { preferencesRepository.updateBehaviorPreferences(updated) }
+    }
 
     fun updatePreferences(updated: ReadingPreferences) {
         viewModelScope.launch { preferencesRepository.updateReadingPreferences(updated) }

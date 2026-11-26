@@ -5,7 +5,10 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -26,6 +29,11 @@ import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Sort
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.RadioButtonUnchecked
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Book
 import androidx.compose.material.icons.filled.Clear
@@ -37,7 +45,14 @@ import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.ViewList
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.FilledTonalButton
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.ListItem
+import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -61,6 +76,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -73,6 +90,8 @@ import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import com.kryptow.epub.reader.R as LibR
 import com.kryptow.epub.reader.bookreader.domain.model.Book
+import com.kryptow.epub.reader.bookreader.domain.model.LibrarySortOrder
+import com.kryptow.epub.reader.bookreader.domain.model.ReadingStatusFilter
 import org.koin.androidx.compose.koinViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -91,6 +110,15 @@ fun LibraryScreen(
     val error by viewModel.error.collectAsState()
     val info by viewModel.info.collectAsState()
     val searchQuery by viewModel.searchQuery.collectAsState()
+    val sortOrder by viewModel.sortOrder.collectAsState()
+    val statusFilter by viewModel.statusFilter.collectAsState()
+    val readingStats by viewModel.readingStats.collectAsState()
+    val dailyGoal by viewModel.dailyGoalMinutes.collectAsState()
+
+    var actionTarget by remember { mutableStateOf<Book?>(null) }
+    var deleteTarget by remember { mutableStateOf<Book?>(null) }
+    var showGoalDialog by remember { mutableStateOf(false) }
+    var showSortMenu by remember { mutableStateOf(false) }
 
     val snackbarHostState = remember { SnackbarHostState() }
     val context = LocalContext.current
@@ -139,6 +167,28 @@ fun LibraryScreen(
             TopAppBar(
                 title = { Text(stringResource(LibR.string.library_title)) },
                 actions = {
+                    Box {
+                        IconButton(onClick = { showSortMenu = true }) {
+                            Icon(
+                                Icons.AutoMirrored.Filled.Sort,
+                                contentDescription = stringResource(LibR.string.library_sort),
+                            )
+                        }
+                        DropdownMenu(expanded = showSortMenu, onDismissRequest = { showSortMenu = false }) {
+                            LibrarySortOrder.entries.forEach { order ->
+                                DropdownMenuItem(
+                                    text = { Text(stringResource(order.labelRes())) },
+                                    leadingIcon = {
+                                        if (order == sortOrder) Icon(Icons.Default.Check, contentDescription = null)
+                                    },
+                                    onClick = {
+                                        viewModel.setSortOrder(order)
+                                        showSortMenu = false
+                                    },
+                                )
+                            }
+                        }
+                    }
                     IconButton(onClick = { viewModel.toggleViewMode() }) {
                         Icon(
                             imageVector = if (viewMode == LibraryViewMode.GRID)
@@ -193,6 +243,17 @@ fun LibraryScreen(
                     .padding(horizontal = 16.dp, vertical = 8.dp),
             )
 
+            // ─── Okuma özeti (hedef · seri · son 7 gün) ────────────────────
+            if (selectedTab == LibraryTab.ALL && (allBooks.isNotEmpty() || readingStats.totalSeconds > 0 ||
+                    statusFilter != ReadingStatusFilter.ALL)
+            ) {
+                ReadingStatsCard(
+                    stats = readingStats,
+                    onClick = { showGoalDialog = true },
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
+                )
+            }
+
             // ─── Sekme çubuğu ─────────────────────────────────────────────
             TabRow(selectedTabIndex = selectedTab.ordinal) {
                 Tab(
@@ -212,9 +273,39 @@ fun LibraryScreen(
                 )
             }
 
+            // ─── Okuma durumu filtresi (Son Okunan sekmesinde anlamsız) ────
+            if (selectedTab != LibraryTab.RECENT) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .horizontalScroll(rememberScrollState())
+                        .padding(horizontal = 16.dp, vertical = 4.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    ReadingStatusFilter.entries.forEach { f ->
+                        FilterChip(
+                            selected = statusFilter == f,
+                            onClick = { viewModel.setStatusFilter(f) },
+                            label = { Text(stringResource(f.labelRes())) },
+                        )
+                    }
+                }
+            }
+
             // ─── İçerik ───────────────────────────────────────────────────
             Box(modifier = Modifier.fillMaxSize()) {
                 when {
+                    displayedBooks.isEmpty() && statusFilter != ReadingStatusFilter.ALL &&
+                        selectedTab != LibraryTab.RECENT ->
+                        Text(
+                            text = stringResource(LibR.string.library_no_match),
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier
+                                .align(Alignment.Center)
+                                .padding(32.dp),
+                        )
+
                     isLoading && displayedBooks.isEmpty() ->
                         CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
 
@@ -238,7 +329,7 @@ fun LibraryScreen(
                         BookGrid(
                             books = displayedBooks,
                             onBookClick = onBookClick,
-                            onLongClick = { viewModel.deleteBook(it) },
+                            onLongClick = { actionTarget = it },
                             onFavoriteClick = { viewModel.toggleFavorite(it) },
                         )
 
@@ -246,7 +337,7 @@ fun LibraryScreen(
                         BookList(
                             books = displayedBooks,
                             onBookClick = onBookClick,
-                            onLongClick = { viewModel.deleteBook(it) },
+                            onLongClick = { actionTarget = it },
                             onFavoriteClick = { viewModel.toggleFavorite(it) },
                         )
                 }
@@ -262,6 +353,122 @@ fun LibraryScreen(
             }
         }
     }
+
+    actionTarget?.let { book ->
+        BookActionsSheet(
+            book = book,
+            onDismiss = { actionTarget = null },
+            onToggleFavorite = {
+                viewModel.toggleFavorite(book)
+                actionTarget = null
+            },
+            onToggleFinished = {
+                viewModel.setFinished(book, !book.isFinished)
+                actionTarget = null
+            },
+            onRemove = {
+                actionTarget = null
+                deleteTarget = book
+            },
+        )
+    }
+
+    deleteTarget?.let { book ->
+        AlertDialog(
+            onDismissRequest = { deleteTarget = null },
+            title = { Text(stringResource(LibR.string.library_delete_confirm)) },
+            text = { Text(stringResource(LibR.string.book_remove_desc)) },
+            confirmButton = {
+                TextButton(onClick = {
+                    viewModel.deleteBook(book)
+                    deleteTarget = null
+                }) {
+                    Text(stringResource(LibR.string.book_remove_confirm), color = MaterialTheme.colorScheme.error)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { deleteTarget = null }) { Text(stringResource(LibR.string.cancel)) }
+            },
+        )
+    }
+
+    if (showGoalDialog) {
+        DailyGoalDialog(
+            currentMinutes = dailyGoal,
+            onSelect = { viewModel.setDailyGoal(it) },
+            onDismiss = { showGoalDialog = false },
+        )
+    }
+}
+
+// ─── Kitap aksiyonları (uzun basma) ───────────────────────────────────────────
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun BookActionsSheet(
+    book: Book,
+    onDismiss: () -> Unit,
+    onToggleFavorite: () -> Unit,
+    onToggleFinished: () -> Unit,
+    onRemove: () -> Unit,
+) {
+    ModalBottomSheet(onDismissRequest = onDismiss) {
+        Column(modifier = Modifier.padding(bottom = 24.dp)) {
+            Text(
+                text = book.title,
+                style = MaterialTheme.typography.titleMedium,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp),
+            )
+            ListItem(
+                headlineContent = {
+                    Text(stringResource(
+                        if (book.isFavorite) LibR.string.book_favorite_remove else LibR.string.book_favorite_add
+                    ))
+                },
+                leadingContent = {
+                    Icon(if (book.isFavorite) Icons.Default.Favorite else Icons.Default.FavoriteBorder, null)
+                },
+                modifier = Modifier.clickable(onClick = onToggleFavorite),
+            )
+            ListItem(
+                headlineContent = {
+                    Text(stringResource(
+                        if (book.isFinished) LibR.string.book_mark_unfinished else LibR.string.book_mark_finished
+                    ))
+                },
+                leadingContent = {
+                    Icon(if (book.isFinished) Icons.Default.RadioButtonUnchecked else Icons.Default.CheckCircle, null)
+                },
+                modifier = Modifier.clickable(onClick = onToggleFinished),
+            )
+            ListItem(
+                headlineContent = {
+                    Text(stringResource(LibR.string.book_remove), color = MaterialTheme.colorScheme.error)
+                },
+                leadingContent = {
+                    Icon(Icons.Default.Delete, null, tint = MaterialTheme.colorScheme.error)
+                },
+                modifier = Modifier.clickable(onClick = onRemove),
+            )
+        }
+    }
+}
+
+private fun LibrarySortOrder.labelRes(): Int = when (this) {
+    LibrarySortOrder.LAST_READ -> LibR.string.sort_last_read
+    LibrarySortOrder.DATE_ADDED -> LibR.string.sort_date_added
+    LibrarySortOrder.TITLE -> LibR.string.sort_title
+    LibrarySortOrder.AUTHOR -> LibR.string.sort_author
+    LibrarySortOrder.PROGRESS -> LibR.string.sort_progress
+}
+
+private fun ReadingStatusFilter.labelRes(): Int = when (this) {
+    ReadingStatusFilter.ALL -> LibR.string.library_tab_all
+    ReadingStatusFilter.UNREAD -> LibR.string.filter_unread
+    ReadingStatusFilter.READING -> LibR.string.filter_reading
+    ReadingStatusFilter.FINISHED -> LibR.string.filter_finished
 }
 
 // ─── Boş durum ────────────────────────────────────────────────────────────────
@@ -418,7 +625,7 @@ private fun BookGridCard(
                 ) {
                     Icon(
                         imageVector = if (book.isFavorite) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
-                        contentDescription = "Favori",
+                        contentDescription = stringResource(LibR.string.library_favorite),
                         tint = if (book.isFavorite)
                             MaterialTheme.colorScheme.error
                         else
@@ -441,7 +648,10 @@ private fun BookGridCard(
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
-                if (book.readingProgressPercent > 0f) {
+                if (book.isFinished) {
+                    Spacer(Modifier.height(4.dp))
+                    FinishedLabel()
+                } else if (book.readingProgressPercent > 0f) {
                     Spacer(Modifier.height(4.dp))
                     LinearProgressIndicator(
                         progress = { book.readingProgressPercent / 100f },
@@ -537,7 +747,10 @@ private fun BookListRow(
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
-            if (book.readingProgressPercent > 0f) {
+            if (book.isFinished) {
+                Spacer(Modifier.height(4.dp))
+                FinishedLabel()
+            } else if (book.readingProgressPercent > 0f) {
                 Spacer(Modifier.height(4.dp))
                 LinearProgressIndicator(
                     progress = { book.readingProgressPercent / 100f },
@@ -555,7 +768,7 @@ private fun BookListRow(
         IconButton(onClick = onFavoriteClick) {
             Icon(
                 imageVector = if (book.isFavorite) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
-                contentDescription = "Favori",
+                contentDescription = stringResource(LibR.string.library_favorite),
                 tint = if (book.isFavorite)
                     MaterialTheme.colorScheme.error
                 else
@@ -592,4 +805,22 @@ private fun LibrarySearchBar(
         singleLine = true,
         shape = MaterialTheme.shapes.extraLarge,
     )
+}
+
+@Composable
+private fun FinishedLabel() {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Icon(
+            Icons.Default.CheckCircle,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.primary,
+            modifier = Modifier.size(14.dp),
+        )
+        Spacer(Modifier.width(4.dp))
+        Text(
+            text = stringResource(LibR.string.filter_finished),
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.primary,
+        )
+    }
 }

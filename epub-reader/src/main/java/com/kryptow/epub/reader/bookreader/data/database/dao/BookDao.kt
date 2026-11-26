@@ -57,4 +57,7 @@ interface BookDao {
 
     @Query("UPDATE books SET isFavorite = :isFavorite WHERE id = :bookId")
     suspend fun setFavorite(bookId: Long, isFavorite: Boolean)
+
+    @Query("UPDATE books SET isFinished = :isFinished WHERE id = :bookId")
+    suspend fun setFinished(bookId: Long, isFinished: Boolean)
 }

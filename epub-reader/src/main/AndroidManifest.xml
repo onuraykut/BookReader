@@ -37,6 +37,17 @@
                 android:value="1" />
         </service>
 
+        <!-- Vurgu dışa aktarma (Markdown / CSV) paylaşımı -->
+        <provider
+            android:name=".bookreader.util.LumenFileProvider"
+            android:authorities="${applicationId}.lumen.fileprovider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/lumen_file_paths" />
+        </provider>
+
         <!-- Araç ses düğmesi alıcısı -->
         <receiver
             android:name="androidx.media.session.MediaButtonReceiver"

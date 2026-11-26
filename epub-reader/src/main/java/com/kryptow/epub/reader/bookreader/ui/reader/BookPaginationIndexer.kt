@@ -32,7 +32,9 @@ import com.kryptow.epub.reader.bookreader.epub.model.EpubChapter
  * @param paginationEpoch Font/margin/orientation değişince artar ve indexer
  *   sıfırdan yeniden başlar.
  */
-@SuppressLint("SetJavaScriptEnabled")
+// JavascriptInterface: bridge metotları @JavascriptInterface ile işaretli; lint `remember {}`
+// içindeki tipi çözemediği için yanlış alarm veriyor.
+@SuppressLint("SetJavaScriptEnabled", "JavascriptInterface")
 @Composable
 fun BookPaginationIndexer(
     chapters: List<EpubChapter>,
@@ -55,7 +57,8 @@ fun BookPaginationIndexer(
     val bridge = remember(paginationEpoch) {
         object {
             @JavascriptInterface
-            fun onMeasured(pageCount: Int) {
+            fun onMeasured(pageCount: Int) = onMain {
+                // JavaBridge thread'inden ana thread'e aktarıldı: `cursor` Compose state'i
                 val idx = cursor
                 if (idx in chaptersState.value.indices) {
                     onIndexed.value(idx, pageCount)
@@ -74,7 +77,11 @@ fun BookPaginationIndexer(
         }
     }
 
+    var rendererGeneration by remember { mutableIntStateOf(0) }
+
+    androidx.compose.runtime.key(rendererGeneration) {
     AndroidView(
+        onRelease = { it.safeDestroy() },
         modifier = modifier
             .fillMaxSize()
             .alpha(0f), // tamamen şeffaf, tıklanamaz ama ölçülebilir
@@ -102,7 +109,7 @@ fun BookPaginationIndexer(
                 isHorizontalScrollBarEnabled = false
                 overScrollMode = WebView.OVER_SCROLL_NEVER
                 addJavascriptInterface(bridge, "AndroidIndexer")
-                webViewClient = object : WebViewClient() {
+                webViewClient = object : SafeWebViewClient({ rendererGeneration++ }) {
                     override fun onPageFinished(view: WebView?, url: String?) {
                         view?.evaluateJavascript("__measure__();", null)
                     }
@@ -121,6 +128,7 @@ fun BookPaginationIndexer(
             }
         },
     )
+    }
 }
 
 private fun buildIndexerHtml(

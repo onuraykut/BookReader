@@ -5,7 +5,13 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.kryptow.epub.reader.R
 import com.kryptow.epub.reader.bookreader.domain.model.Highlight
+import com.kryptow.epub.reader.bookreader.domain.export.ExportFormat
+import com.kryptow.epub.reader.bookreader.domain.export.ExportLabels
+import com.kryptow.epub.reader.bookreader.domain.export.ExportResult
+import com.kryptow.epub.reader.bookreader.domain.export.HighlightExporter
+import com.kryptow.epub.reader.bookreader.domain.model.Book
 import com.kryptow.epub.reader.bookreader.domain.model.HighlightColor
+import com.kryptow.epub.reader.bookreader.domain.repository.BookRepository
 import com.kryptow.epub.reader.bookreader.domain.usecase.DeleteHighlightUseCase
 import com.kryptow.epub.reader.bookreader.domain.usecase.GetHighlightsUseCase
 import com.kryptow.epub.reader.bookreader.domain.usecase.UpdateHighlightUseCase
@@ -23,7 +29,16 @@ class NotesViewModel(
     private val updateHighlightUseCase: UpdateHighlightUseCase,
     private val deleteHighlightUseCase: DeleteHighlightUseCase,
     private val context: Context,
+    bookRepository: BookRepository? = null,
 ) : ViewModel() {
+
+    private val _book = MutableStateFlow<Book?>(null)
+
+    init {
+        if (bookRepository != null) {
+            viewModelScope.launch { _book.value = bookRepository.getBookById(bookId) }
+        }
+    }
 
     private val _raw = getHighlightsUseCase(bookId)
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
@@ -57,30 +72,34 @@ class NotesViewModel(
         viewModelScope.launch { deleteHighlightUseCase(highlight) }
     }
 
+    /** Vurgu var mı? (Dışa aktarma butonunu etkinleştirmek için) */
+    val hasHighlights: Boolean get() = _raw.value.isNotEmpty()
+
     /**
-     * Tüm vurguları TXT formatında döner (dışa aktarma için).
+     * Tüm vurguları seçilen biçimde döner.
      * Renk filtresi uygulanmaz — daima tüm notlar dışa aktarılır.
      */
-    fun exportAsTxt(): String {
-        val list = _raw.value.sortedWith(compareBy({ it.page }, { it.timestamp }))
-        return buildString {
-            appendLine("=== ${context.getString(R.string.notes_title)} ===")
-            appendLine()
-            var lastPage = -1
-            list.forEach { h ->
-                if (h.page != lastPage) {
-                    appendLine("── ${context.getString(R.string.chapter_format, h.page + 1)} ──")
-                    lastPage = h.page
-                }
-                appendLine("\"${h.selectedText}\"")
-                if (h.note != null) appendLine(h.note)
-                appendLine("(${context.getString(h.color.labelRes)}, ${formatDateExport(h.timestamp)})")
-                appendLine()
-            }
-        }
+    fun export(format: ExportFormat): ExportResult {
+        val book = _book.value
+        val labels = ExportLabels(
+            notesTitle = context.getString(R.string.notes_title),
+            chapter = { n -> context.getString(R.string.chapter_format, n) },
+            colorName = { h -> context.getString(h.color.labelRes) },
+            chapterHeader = context.getString(R.string.export_chapter_label),
+            textHeader = context.getString(R.string.export_text_label),
+            noteHeader = context.getString(R.string.export_note_label),
+            colorHeader = context.getString(R.string.export_color_label),
+            dateHeader = context.getString(R.string.export_date_label),
+        )
+        return HighlightExporter.export(
+            format = format,
+            bookTitle = book?.title ?: context.getString(R.string.notes_title),
+            bookAuthor = book?.author,
+            highlights = _raw.value,
+            labels = labels,
+        )
     }
 
-    private fun formatDateExport(ts: Long): String =
-        java.text.SimpleDateFormat("d MMM yyyy HH:mm", java.util.Locale.getDefault())
-            .format(java.util.Date(ts))
+    /** Geriye dönük uyumluluk: düz metin dışa aktarma. */
+    fun exportAsTxt(): String = export(ExportFormat.TEXT).content
 }

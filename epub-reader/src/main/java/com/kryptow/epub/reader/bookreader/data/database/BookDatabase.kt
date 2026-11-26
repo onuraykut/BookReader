@@ -7,22 +7,31 @@ import androidx.sqlite.db.SupportSQLiteDatabase
 import com.kryptow.epub.reader.bookreader.data.database.dao.BookDao
 import com.kryptow.epub.reader.bookreader.data.database.dao.BookmarkDao
 import com.kryptow.epub.reader.bookreader.data.database.dao.BookProgressDao
+import com.kryptow.epub.reader.bookreader.data.database.dao.DailyReadingDao
 import com.kryptow.epub.reader.bookreader.data.database.dao.HighlightDao
 import com.kryptow.epub.reader.bookreader.data.database.entity.BookEntity
 import com.kryptow.epub.reader.bookreader.data.database.entity.BookmarkEntity
 import com.kryptow.epub.reader.bookreader.data.database.entity.BookProgressEntity
+import com.kryptow.epub.reader.bookreader.data.database.entity.DailyReadingEntity
 import com.kryptow.epub.reader.bookreader.data.database.entity.HighlightEntity
 
 @Database(
-    entities = [BookEntity::class, BookmarkEntity::class, BookProgressEntity::class, HighlightEntity::class],
-    version = 3,
-    exportSchema = false,
+    entities = [
+        BookEntity::class,
+        BookmarkEntity::class,
+        BookProgressEntity::class,
+        HighlightEntity::class,
+        DailyReadingEntity::class,
+    ],
+    version = 4,
+    exportSchema = true,
 )
 abstract class BookDatabase : RoomDatabase() {
     abstract fun bookDao(): BookDao
     abstract fun bookmarkDao(): BookmarkDao
     abstract fun bookProgressDao(): BookProgressDao
     abstract fun highlightDao(): HighlightDao
+    abstract fun dailyReadingDao(): DailyReadingDao
 
     companion object {
         const val DATABASE_NAME = "book_reader_db"
@@ -78,5 +87,24 @@ abstract class BookDatabase : RoomDatabase() {
                 )
             }
         }
+
+        /** v3 → v4: günlük okuma süresi tablosu (istatistik / hedef / seri) */
+        val MIGRATION_3_4 = object : Migration(3, 4) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    """CREATE TABLE IF NOT EXISTS daily_reading (
+                        day INTEGER NOT NULL,
+                        bookId INTEGER NOT NULL,
+                        seconds INTEGER NOT NULL,
+                        PRIMARY KEY(day, bookId)
+                    )"""
+                )
+                db.execSQL(
+                    "CREATE INDEX IF NOT EXISTS index_daily_reading_bookId ON daily_reading(bookId)"
+                )
+            }
+        }
+
+        val ALL_MIGRATIONS = arrayOf(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
     }
 }

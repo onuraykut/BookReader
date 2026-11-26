@@ -61,6 +61,9 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
+import androidx.core.view.WindowCompat
+import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.WindowInsetsControllerCompat
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
@@ -100,20 +103,17 @@ fun PdfReaderScreen(
 
     // Sistem barlarını gizle
     DisposableEffect(Unit) {
+        // WindowInsetsControllerCompat: API 24-29'da da çalışır (platform API'si 30+ ister)
         (context as? Activity)?.window?.let { window ->
-            window.insetsController?.hide(
-                android.view.WindowInsets.Type.statusBars() or
-                        android.view.WindowInsets.Type.navigationBars()
-            )
-            window.insetsController?.systemBarsBehavior =
-                android.view.WindowInsetsController.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+            WindowCompat.getInsetsController(window, window.decorView).apply {
+                hide(WindowInsetsCompat.Type.systemBars())
+                systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+            }
         }
         onDispose {
             (context as? Activity)?.window?.let { window ->
-                window.insetsController?.show(
-                    android.view.WindowInsets.Type.statusBars() or
-                            android.view.WindowInsets.Type.navigationBars()
-                )
+                WindowCompat.getInsetsController(window, window.decorView)
+                    .show(WindowInsetsCompat.Type.systemBars())
             }
         }
     }
